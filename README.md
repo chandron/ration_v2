@@ -1,93 +1,60 @@
-# RATION
+This git project serves as a repository for the scripts I have written in the frame of the EU-funded RATION project. For more information, visit https://www.ration-lrp.eu/
 
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+# Usage - dsRNA_analyzer.v0.1.py
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/pioannidis/ration.git
-git branch -M main
-git push -uf origin main
+Usage: dsRNA_analyzer.v2.py <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)>
 ```
 
-## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.com/pioannidis/ration/-/settings/integrations)
+## Overview
 
-## Collaborate with your team
+This script will take in a fasta file containing  mRNA sequences and evaluate their suitability as RNAi targets. More specifically, it will check whether there are short interfering RNAs (siRNAs) contained within this mRNA sequence that:
+ 1. have specific properties (GC content, asymmetry, no nucleotide runs)
+ 2. are specific for the particular mRNA in the target organism
+ 3. don't have off-targets in the target organism
+ 4. don't have off-targets in non-target organisms (NTOs)
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+The Python libaries required for this script are usually installed with any Python installation.
+ * `os`
+ * `getopt`
+ * `sys`
+ * `re`
 
-## Test and Deploy
+In addition, BLAST+ should be installed (v2.2.31+ was used for script development).
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+This script is based on the DEQOR program, which can be found at
+http://144.76.155.9/deqor_new/input.html
 
-***
+DEQOR, however, doesn't search for hits in NTOs and, more importantly,
+cannot be downloaded and run locally.
 
-# Editing this README
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Output
 
-## Suggestions for a good README
+Currently, there are 3 tab-delimited output files:
+ 1. siRNAs.all.tsv
+ 2. siRNAs.good.tsv
+ 3. dsRNAs_per_gene.tsv
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+The first two files show details about the siRNAs contained in each input mRNA sequence. The third file contains information about the proposed 500 bp long dsRNA sequence which is predicted for each input mRNA.
 
-## Name
-Choose a self-explaining name for your project.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Improvements
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+A number of improvements are needed even though the script is functional in its current form. Below are some examples:
+ * the code would be much more readable if I had functions instead!
+ * Give certain parameters (number of threads, deletion of temporary files etc) as command line arguments. Both of them are currently given as constants, which are defined inside the script.
+ * Currently, the script runs 3 BLASTN searches for each input sequence. While this made programming easier, it also leads to tens of thousands of BLAST searches in the case of entire gene sets! More specifically it might take 2 days to finish a gene set with 15,000 genes (having only two NTOs). Thus, a great speed improvement would be to run only 3 BLAST searches regardless of the number of input sequences.
+ * The length of the dsRNA for each input mRNA shouldn't be fixed to 500 bp (I guess). I guess that it's better for it to be dynamically determined based on the distribution of good siRNAs along the mRNA sequence.
+ * A graphical environment would be great! And it wouldn't be terribly difficult to write. But it's so 2000s! It would be so much better if a webapp was written! That would make it easy for anyone to run, but it would be much more challenging to implement...
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Tutorial
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+To be added!
+
 
 ## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+You can send me a message here, or email me.
