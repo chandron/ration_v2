@@ -44,16 +44,67 @@ The length of the siRNAs is set to 21-nt and the properties in (1) are calculate
 ## Output
 
 Currently, there are 3 tab-delimited output files:
- 1. siRNAs.all.tsv
- 2. siRNAs.good.tsv
- 3. dsRNAs_per_gene.tsv
+ 1. `siRNAs.all.tsv`
+ 2. `siRNAs.good.tsv`
+ 3. `dsRNAs_per_gene.tsv`
 
 The first two files show details about the siRNAs contained in each input mRNA sequence. The third file contains information about the proposed 500 bp long dsRNA sequence which is predicted for each input mRNA.
+
+The **first** file (`siRNAs.all.tsv`) will look like this:
+```
+siRNA_name	sequence	QC_asymmetry	QC_nucleotide_runs	QC_GC_content	QC_specificity	QC_offtargets	QC_NTO_offtargets
+cds_XP_023029393.1_1_0	ATGTTGTTGGTGACTATGGTT	0	0	1	0	0	0
+cds_XP_023029393.1_1_1	TGTTGTTGGTGACTATGGTTT	0	1	1	0	0	0
+cds_XP_023029393.1_1_2	GTTGTTGGTGACTATGGTTTT	0	1	1	0	0	0
+cds_XP_023029393.1_1_3	TTGTTGGTGACTATGGTTTTG	1	1	1	0	0	0
+cds_XP_023029393.1_1_4	TGTTGGTGACTATGGTTTTGA	0	1	1	0	0	0
+cds_XP_023029393.1_1_5	GTTGGTGACTATGGTTTTGAG	0	1	1	0	0	0
+cds_XP_023029393.1_1_6	TTGGTGACTATGGTTTTGAGG	1	1	1	1	0	0
+cds_XP_023029393.1_1_7	TGGTGACTATGGTTTTGAGGA	0	1	1	1	0	0
+cds_XP_023029393.1_1_8	GGTGACTATGGTTTTGAGGAG	0	1	1	1	0	0
+...
+```
+
+Each field contains the following:
+ 1. `siRNA_name`: that's a name assigned to each siRNA; it's the name of the CDS with the suffix of the start position of this siRNA.
+ 2. `sequence`: that's the sequence of the siRNA.
+ 3. `QC_asymmetry`: that's a binary flag (i.e. `0` or `1`) indicating whether the particular siRNA is asymetrical which means that it should have an A/T as its 5' nucleotide and a G/C as its 3' nucleotide.
+ 4. `QC_nucleotide_runs`: a binary flag indicating whether the siRNA contains nucleotide runs (at least 3 consecutive, identical nucleotides).
+ 5. `QC_GC_content`: a binary flag indicating whether the %GC of the siRNA is between 20-50%.
+ 6. `QC_specificity`: a binary flag indicating whether the siRNA has a BLAST hit within the genomic locus of the transcript.
+ 7. `QC_offtargets`: a binary flag indicating whether the siRNA has a BLAST hit outside of the genomic locus of the transcript.
+ 8. `QC_NTO_offtargets`: a binary flag indicating whether the siRNA has a BLAST hit in the genome of an NTO.
+
+The **second** file (`siRNAs.good.tsv`) will look like the first file, except that it will only contain the good siRNAs; in essence it's a filtered version of the previous file.
+
+The **third** file will look like this:
+```
+TranscriptID	dsRNA_start	dsRNA_stop	Transcript_length	Count_of_good_siRNAs	dsRNA_sequence
+cds_XP_023029393.1_1	-1	499	363	0	A
+cds_XP_023025894.1_2	-1	499	366	0	A
+cds_XP_023012584.1_3	370	870	942	47	TGGTTTCGCATATTTCCAATTTAGATGA... (500 nucleotides in total)
+cds_XP_023013681.1_4	900	1400	1545	36	ATCTTCGAGCTTGCAACAACTCTACAAC... (500 nucleotides in total)
+cds_XP_023018127.1_5	941	1441	1584	28	TTGTGATACTATAAATCATCCTTCACAA... (500 nucleotides in total)
+cds_XP_023014429.1_6	873	1373	1518	36	ATCTTCGAGCTTGCAACAACTCTACAAC... (500 nucleotides in total)
+cds_XP_023015887.1_7	757	1257	1356	25	GAAGAATTATTATAACTAGGGTAATGGC... (500 nucleotides in total)
+cds_XP_023016627.1_8	757	1257	1356	25	GAAGAATTATTATAACTAGGGTAATGGC... (500 nucleotides in total)
+cds_XP_023017388.1_9	757	1257	1347	25	GAAGAATTATTATAACTAGGGTAATGGC... (500 nucleotides in total)
+...
+```
+
+Each field contains the following:
+ 1. `TranscriptID`: the transcript ID.
+ 2. `dsRNA_start`: the starting position of the suggested 500-nt dsRNA
+ 3. `dsRNA_stop`: the stopping position of the dsRNA.
+ 4. `Transcript_length`: the total length of the transcript so that you can tell if the dsRNA falls towards the 5' or 3' of the transcript.
+ 5. `Count_of_good_siRNAs`: the total number of good siRNAs found within the dsRNA.
+ 6. `dsRNA_sequence`: the sequence of the dsRNA. If the transcript length is <500bp then no dsRNA will be suggested.
 
 
 ## Improvements
 
 A number of improvements are needed even though the script is functional in its current form. Below are some examples:
+ * the coordinates of the input transcript on the target genome should be input as a gff/gff-like format. Currently, each transcript is BLASTed against the target genome in order to find its position on the genome. This method was chosen because I had in mind that doing so enables the evaluation of ANY transcript. However, it can be sub-optimal in the sense that quite a few chunks of the input transcript might not be found (e.g. short exons will most probably be missed). I have set the BLAST word size to `5` but still there are parts of the transcripts that are missed in the genome. As a result, this can lead to false off-targets within the target genomes (i.e. off-targets that are not actually off-targets).
  * the code would be much more readable if I had functions instead!
  * Give certain parameters (number of threads, deletion of temporary files etc) as command line arguments. Both of them are currently given as constants, which are defined inside the script.
  * Currently, the script runs 3 BLASTN searches for each input sequence. While this made programming easier, it also leads to tens of thousands of BLAST searches in the case of entire gene sets! More specifically it might take 2 days to finish a gene set with 15,000 genes (having only two NTOs). Thus, a great speed improvement would be to run only 3 BLAST searches regardless of the number of input sequences.
@@ -144,7 +195,7 @@ Finally, run `dsRNA_analyzer.py` like this
 dsRNA_analyzer.py cds_from_genomic.mod.fna GCF_000500325.1_Ldec_2.0_genomic.fna NTOs.fna > stdout_stderr 2>&1 &
 ```
 
-The program will take about 2 days to complete! This is mostly due to the large number of BLAST runs (as many as the input transcripts - also see Improvements above).
+The program will take about 2 days to complete! This is mostly due to the large number of BLAST runs (as many as the input transcripts - also see Improvements above). The output files will be the abovementioned 3 files plus the `stdout_stderr` that will keep all the progress messages.
 
 ## Support
 You can send me a message here, or email me.

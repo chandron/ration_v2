@@ -24,7 +24,7 @@ genome = sys.argv[2]
 NTOs   = sys.argv[3]
 
 DELETE_TMP = True  # delete temporary file
-CPUS = 4
+CPUS = 8
 
 # first, check if the genome is formatted
 if not os.path.isfile(genome + ".nhr"):
@@ -82,15 +82,15 @@ sys.stderr.write( "Finished reading the dsRNA fasta file\n" )
 
 # open the file where you'll write the dsRNA sequence (and other details)
 fhout_dsRNA = open( "dsRNAs_per_gene.tsv", "w")
-fhout_dsRNA.write( "GeneID\tdsRNA_start\tdsRNA_stop\tGene_length\tCount_of_good_siRNAs\tdsRNA_sequence\n" )
+fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tCount_of_good_siRNAs\tdsRNA_sequence\n" )
 
 # open the output files
 fhgood = open ( "siRNAs.good.tsv", "w" )
 fhall  = open ( "siRNAs.all.tsv", "w" )
 
 # print the header of the output
-fhgood.write( "siRNA name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
-fhall.write( "siRNA name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
+fhgood.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
+fhall.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 
 # Now loop through the fasta dictionary and analyze each sequence
 #sys.stderr.write( "\nAnalyzing each gene separately\n" )
@@ -287,7 +287,7 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nto_offtargets"] == 0:
 			fhgood.write( out )
 			
-			pos = int( siRNA_name.split("_")[1] )
+			pos = int( siRNA_name.split("_")[-1] )
 			good_pos.append( pos )
 	
 	# End of results printing #####################
