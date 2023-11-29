@@ -1,5 +1,9 @@
-This git project serves as a repository for the scripts I have written in the frame of the EU-funded RATION project. For more information, visit https://www.ration-lrp.eu/
-![](RATION_logo.png) <img src="eu.png" alt="drawing" width="100" align="right" />
+This git project serves as a repository for the scripts I have written in the frame of the EU-funded RATION project. 
+
+![](RATION_logo.png)
+
+For more information, visit https://www.ration-lrp.eu/
+
 
 # *Script 1:* `dsRNA_analyzer.v0.1.py`
 
