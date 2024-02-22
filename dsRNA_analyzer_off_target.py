@@ -90,11 +90,13 @@ fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tCo
 fhgood = open ( "siRNAs.good.tsv", "w" )
 fhall  = open ( "siRNAs.all.tsv", "w" )
 fhbad  = open ( "siRNAs.bad.tsv", "w" )
+fhplainbad  = open ( "siRNAs.plainbad.tsv", "w" )
 
 # print the header of the output
 fhgood.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 fhall.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 fhbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
+fhplainbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 
 # # Read output from blastn to pandas
 # blastto = pd.read_csv("/home/christos-andronis/projects/ration/delme.blastn.fmt6", sep='\t')
@@ -243,7 +245,7 @@ for gene in fasta:
 
 
 
-	# BLAST the siRNA sequence against the genome of the non-target organisms
+	# BLAST the siRNA sequence against the genome of the non-target organisms (NTOs)
 	# in order to find off-targets in those organisms
 	return_code = os.system ( 'blastn -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 	
@@ -262,11 +264,10 @@ for gene in fasta:
 		
 		if mismatches <= 2 and gapopen == 0:
 			properties[siRNA_name]["qc_nto_offtargets"] = 1
-			print(siRNA_name)
 	fhbl.close()
-	if DELETE_TMP:
-		os.remove( "siRNAs_NTOs.blastn.fmt6" )
-		os.remove( "siRNAs.fa" )
+	# if DELETE_TMP:
+	# 	os.remove( "siRNAs_NTOs.blastn.fmt6" )
+	# 	os.remove( "siRNAs.fa" )
 	## End of BLAST vs the NTOs ################################
 
 
@@ -300,11 +301,24 @@ for gene in fasta:
 			
 			pos = int( siRNA_name.split("_")[-1] )
 			good_pos.append( pos )
-
-		# if this siRNA is not satisfying the NTO QC criteria then 
-		# print it in the "bad" siRNA output as well.
-		if properties[siRNA_name]["qc_nto_offtargets"] == 1:
+		
+		# if this siRNA is satisfying the TO QC criteria but not the NTO QC then 
+		# print it in the "bad" siRNA output.
+		if properties[siRNA_name]["qc_asymmetry"] == 1 \
+			and properties[siRNA_name]["qc_nt_runs"] == 0 \
+			and properties[siRNA_name]["qc_gc_content"] == 1 \
+			and properties[siRNA_name]["qc_specificity"] == 1 \
+			and properties[siRNA_name]["qc_offtargets"] == 0 \
+			and properties[siRNA_name]["qc_nto_offtargets"] == 1:
 			fhbad.write( out )
+			
+			pos = int( siRNA_name.split("_")[-1] )
+			bad_pos.append( pos )
+		
+		# if this siRNA is not satisfying the NTO QC criteria no matter the TO QC then 
+		# print it in the "plainbad" siRNA output.
+		elif properties[siRNA_name]["qc_nto_offtargets"] == 1:
+			fhplainbad.write( out )
 			
 			pos = int( siRNA_name.split("_")[-1] )
 			bad_pos.append( pos )
@@ -358,5 +372,6 @@ for gene in fasta:
 
 fhgood.close()
 fhbad.close()
+fhplainbad.close()
 fhall.close()
 fhout_dsRNA.close()
