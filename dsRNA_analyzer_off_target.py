@@ -118,58 +118,58 @@ for gene in fasta:
 	# Get its coordinates
 	# ...
 	#
-	sys.stderr.write ( "\nAnalyzing gene: " + gene + "...\n" )
+	# sys.stderr.write ( "\nAnalyzing gene: " + gene + "...\n" )
 	
-	tmp_file = gene + ".fa"
-	fhout = open ( tmp_file, "w" )
-	fhout.write( ">" + gene + "\n" )
-	fhout.write( fasta[gene] + "\n" )
-	fhout.close()
-	sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
-	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
-	if return_code != 0:
-		sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
-		exit( return_code )
-	else:
-		sys.stderr.write( "blastn finished sucessfully!\n" )
+	# tmp_file = gene + ".fa"
+	# fhout = open ( tmp_file, "w" )
+	# fhout.write( ">" + gene + "\n" )
+	# fhout.write( fasta[gene] + "\n" )
+	# fhout.close()
+	# sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
+	# return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	# if return_code != 0:
+	# 	sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
+	# 	exit( return_code )
+	# else:
+	# 	sys.stderr.write( "blastn finished sucessfully!\n" )
 	
-	# open the blast output and get the coordinates of the locus of origin
-	fhbl = open ( gene + ".blastn.fmt6" )
+	# # open the blast output and get the coordinates of the locus of origin
+	# fhbl = open ( gene + ".blastn.fmt6" )
 	
-	s_coords = []  # and these are the subject (genome) coordinates
+	# s_coords = []  # and these are the subject (genome) coordinates
 	
 	q_len = len ( fasta[gene] )      # that's the length of the input mRNA
 	
-	hit_len = 0                # this is the cumulative length of the blastn hits
-				   # Ideally, it should be the same as q_len
+	# hit_len = 0                # this is the cumulative length of the blastn hits
+	# 			   # Ideally, it should be the same as q_len
 	
-	for line in fhbl:
-		f = line.split( "\t" )
-		if float(f[2]) > 98:   # the dsRNA should match perfectly to the corresponding genome
-				       # All other hits are disregarded
-			if int(f[8]) < int(f[9]):    # if the hit is on the plus strand
-				s_coords.append ( f[1] + "\t" + f[8] + "\t" + f[9] )
-			else:
-				s_coords.append ( f[1] + "\t" + f[9] + "\t" + f[8] )
+	# for line in fhbl:
+	# 	f = line.split( "\t" )
+	# 	if float(f[2]) > 98:   # the dsRNA should match perfectly to the corresponding genome
+	# 			       # All other hits are disregarded
+	# 		if int(f[8]) < int(f[9]):    # if the hit is on the plus strand
+	# 			s_coords.append ( f[1] + "\t" + f[8] + "\t" + f[9] )
+	# 		else:
+	# 			s_coords.append ( f[1] + "\t" + f[9] + "\t" + f[8] )
 			
-			hit_len += int(f[7]) - int(f[6]) + 1
+	# 		hit_len += int(f[7]) - int(f[6]) + 1
 	
-	fhbl.close()
+	# fhbl.close()
 	
-	if DELETE_TMP:
-		os.remove( gene + ".fa" )
-		os.remove( gene + ".blastn.fmt6" )
+	# if DELETE_TMP:
+	# 	os.remove( gene + ".fa" )
+	# 	os.remove( gene + ".blastn.fmt6" )
 	
-	if hit_len/q_len > 0.9 and hit_len/q_len <= 1:
-		sys.stderr.write( "The majority of the dsRNA sequence was found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	elif hit_len/q_len <= 0.9:
-		sys.stderr.write( "A significant part of the dsRNA couldn't be found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	elif hit_len/q_len > 1:
-		sys.stderr.write( "The sum of hits is greater than the dsRNA length: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	else:
-		sys.stderr.write( "You should never get here!\n" )
+	# if hit_len/q_len > 0.9 and hit_len/q_len <= 1:
+	# 	sys.stderr.write( "The majority of the dsRNA sequence was found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	# elif hit_len/q_len <= 0.9:
+	# 	sys.stderr.write( "A significant part of the dsRNA couldn't be found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	# elif hit_len/q_len > 1:
+	# 	sys.stderr.write( "The sum of hits is greater than the dsRNA length: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	# else:
+	# 	sys.stderr.write( "You should never get here!\n" )
 
-	sys.stderr.write( "Found the genomic locus of origin\n" )
+	# sys.stderr.write( "Found the genomic locus of origin\n" )
 
 	# Now take all possible 21-nt sequences from the dsRNA sequence
 	# and blast it against the genome sequence
