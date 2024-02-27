@@ -3,10 +3,10 @@
 import os
 import getopt, sys
 import re
-#import pandas as pd
+# import gffutils
+import pandas as pd
 
-
-if len( sys.argv ) != 5 or os.path.exists( sys.argv[1] ) == False or os.path.exists( sys.argv[2] ) == False or os.path.exists( sys.argv[3] ) == False:
+if len( sys.argv ) != 6 or os.path.exists( sys.argv[1] ) == False or os.path.exists( sys.argv[2] ) == False or os.path.exists( sys.argv[3] ) == False:
 	directories = sys.argv[0].split( "/" )
 	print(
 """
@@ -23,7 +23,8 @@ as well as for other non-target organisms (NTOs).
 mRNAs = sys.argv[1]
 genome = sys.argv[2]
 NTOs   = sys.argv[3]
-DS_LEN = sys.argv[4]
+GFF = sys.argv[4]
+DS_LEN = sys.argv[5]
 
 DELETE_TMP = True  # delete temporary file
 CPUS = 8
@@ -49,6 +50,19 @@ if not os.path.isfile(NTOs + ".nhr"):
 		sys.stderr.write( "makeblastdb finished successfully!\n" )
 
 #
+# Import the genomic.gff file
+gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
+
+print(gff.head())
+gff_cds = gff[gff[2] == "CDS"]
+print(gff_cds.head())
+print(gff_cds[gff_cds[8].str.contains("cds-XP_023014076.1")])
+gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
+gff_cds = gff_cds[[9, 3, 4, 6, 0]]. rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'})
+print(gff_cds.info())
+print(gff_cds[gff_cds['CDS_name'] == 'XP_023014076.1'])
+
+
 # then, open the fasta file containing the dsRNA sequences
 fh1 = open ( mRNAs )
 
@@ -98,14 +112,12 @@ fhall.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_cont
 fhbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 fhplainbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC_content\tQC_specificity\tQC_offtargets\tQC_NTO_offtargets\n" )
 
-# # Read output from blastn to pandas
-# blastto = pd.read_csv("/home/christos-andronis/projects/ration/delme.blastn.fmt6", sep='\t')
-# print(blastto.info())
-# print(blastto.head())
-
 # Now loop through the fasta dictionary and analyze each sequence
 #sys.stderr.write( "\nAnalyzing each gene separately\n" )
 for gene in fasta:
+	# Get its coordinates
+	# ...
+	#
 	sys.stderr.write ( "\nAnalyzing gene: " + gene + "...\n" )
 	
 	tmp_file = gene + ".fa"
@@ -159,7 +171,6 @@ for gene in fasta:
 
 	sys.stderr.write( "Found the genomic locus of origin\n" )
 
-
 	# Now take all possible 21-nt sequences from the dsRNA sequence
 	# and blast it against the genome sequence
 	SIRNA_LEN = 20  # this is the default. Think twice before you change it!
@@ -205,8 +216,9 @@ for gene in fasta:
 
 	# BLAST the siRNA sequence against the genome of the target organism
 	# in order to verify specificity and find any off-targets
-	return_code = os.system ( 'blastn -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
-	
+
+	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+		
 	if return_code > 0:
 		sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
 		exit (return_code)
@@ -217,6 +229,7 @@ for gene in fasta:
 	for line in fhbl:
 		f = line.split( "\t" )
 		
+		cds_name	= re.sub(r'_\d+$', '', f[0])
 		siRNA_name      = f[0]
 		aln_length  = int(f[3])
 		mismatches  = int(f[4])
@@ -225,11 +238,16 @@ for gene in fasta:
 		chromosome  = f[1]
 
 		if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
-			for coord in s_coords:
-				genome_coords = coord.split ( "\t" )
-				
-				if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
+			for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
+				if chromosome == row['chromosome'] and siRNA_coord >= row['start'] and siRNA_coord <= row['end']:
+					# print(row['start'], row['end'], row['chromosome'])
 					properties[siRNA_name]["qc_specificity"] = 1
+
+			# for coord in s_coords:
+			# 	genome_coords = coord.split ( "\t" )
+				
+			# 	if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
+			# 		properties[siRNA_name]["qc_specificity"] = 1
 
 			# if the current good hit wasn't found within the coordinates of the locus of origin
 			# then this good hit is an off-target of the siRNA
@@ -247,7 +265,12 @@ for gene in fasta:
 
 	# BLAST the siRNA sequence against the genome of the non-target organisms (NTOs)
 	# in order to find off-targets in those organisms
-	return_code = os.system ( 'blastn -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	
+	# # original version
+	# return_code = os.system ( 'blastn -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+
+	# blastn-short
+	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 	
 	if return_code > 0:
 		sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
