@@ -6,7 +6,7 @@ import re
 # import gffutils
 import pandas as pd
 
-if len( sys.argv ) != 6 or os.path.exists( sys.argv[1] ) == False or os.path.exists( sys.argv[2] ) == False or os.path.exists( sys.argv[3] ) == False:
+if len( sys.argv ) != 6 or os.path.exists( sys.argv[1] ) == False or os.path.exists( sys.argv[2] ) == False or os.path.exists( sys.argv[3] ) == False or os.path.exists( sys.argv[4] ) == False or os.path.exists( sys.argv[5] ) == False:
 	directories = sys.argv[0].split( "/" )
 	print(
 """
@@ -23,8 +23,9 @@ as well as for other non-target organisms (NTOs).
 mRNAs = sys.argv[1]
 genome = sys.argv[2]
 NTOs   = sys.argv[3]
-GFF = sys.argv[4]
+# GFF = sys.argv[4]
 DS_LEN = sys.argv[5]
+SIRNA_LEN= sys.argv[4]
 
 DELETE_TMP = True  # delete temporary file
 CPUS = 8
@@ -49,19 +50,13 @@ if not os.path.isfile(NTOs + ".nhr"):
 	else:
 		sys.stderr.write( "makeblastdb finished successfully!\n" )
 
-#
-# Import the genomic.gff file
-gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
-
-print(gff.head())
-gff_cds = gff[gff[2] == "CDS"]
-print(gff_cds.head())
-print(gff_cds[gff_cds[8].str.contains("cds-XP_023014076.1")])
-gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
-gff_cds = gff_cds[[9, 3, 4, 6, 0]]. rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'})
-print(gff_cds.info())
-print(gff_cds[gff_cds['CDS_name'] == 'XP_023014076.1'])
-
+# #############################
+# # Import the genomic.gff file
+# gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
+# gff_cds = gff[gff[2] == "CDS"]
+# gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
+# gff_cds = gff_cds[[9, 3, 4, 6, 0]]. rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'})
+# #############################
 
 # then, open the fasta file containing the dsRNA sequences
 fh1 = open ( mRNAs )
@@ -115,65 +110,62 @@ fhplainbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC
 # Now loop through the fasta dictionary and analyze each sequence
 #sys.stderr.write( "\nAnalyzing each gene separately\n" )
 for gene in fasta:
-	# Get its coordinates
-	# ...
-	#
-	# sys.stderr.write ( "\nAnalyzing gene: " + gene + "...\n" )
+	sys.stderr.write ( "\nAnalyzing gene: " + gene + "...\n" )
 	
-	# tmp_file = gene + ".fa"
-	# fhout = open ( tmp_file, "w" )
-	# fhout.write( ">" + gene + "\n" )
-	# fhout.write( fasta[gene] + "\n" )
-	# fhout.close()
-	# sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
-	# return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
-	# if return_code != 0:
-	# 	sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
-	# 	exit( return_code )
-	# else:
-	# 	sys.stderr.write( "blastn finished sucessfully!\n" )
+	tmp_file = gene + ".fa"
+	fhout = open ( tmp_file, "w" )
+	fhout.write( ">" + gene + "\n" )
+	fhout.write( fasta[gene] + "\n" )
+	fhout.close()
+	sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
+	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	if return_code != 0:
+		sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
+		exit( return_code )
+	else:
+		sys.stderr.write( "blastn finished sucessfully!\n" )
 	
-	# # open the blast output and get the coordinates of the locus of origin
-	# fhbl = open ( gene + ".blastn.fmt6" )
+	# open the blast output and get the coordinates of the locus of origin
+	fhbl = open ( gene + ".blastn.fmt6" )
 	
-	# s_coords = []  # and these are the subject (genome) coordinates
+	s_coords = []  # and these are the subject (genome) coordinates
 	
 	q_len = len ( fasta[gene] )      # that's the length of the input mRNA
 	
-	# hit_len = 0                # this is the cumulative length of the blastn hits
-	# 			   # Ideally, it should be the same as q_len
+	hit_len = 0                # this is the cumulative length of the blastn hits
+				   # Ideally, it should be the same as q_len
 	
-	# for line in fhbl:
-	# 	f = line.split( "\t" )
-	# 	if float(f[2]) > 98:   # the dsRNA should match perfectly to the corresponding genome
-	# 			       # All other hits are disregarded
-	# 		if int(f[8]) < int(f[9]):    # if the hit is on the plus strand
-	# 			s_coords.append ( f[1] + "\t" + f[8] + "\t" + f[9] )
-	# 		else:
-	# 			s_coords.append ( f[1] + "\t" + f[9] + "\t" + f[8] )
+	for line in fhbl:
+		f = line.split( "\t" )
+		if float(f[2]) > 98:   # the dsRNA should match perfectly to the corresponding genome
+				       # All other hits are disregarded
+			if int(f[8]) < int(f[9]):    # if the hit is on the plus strand
+				s_coords.append ( f[1] + "\t" + f[8] + "\t" + f[9] )
+			else:
+				s_coords.append ( f[1] + "\t" + f[9] + "\t" + f[8] )
 			
-	# 		hit_len += int(f[7]) - int(f[6]) + 1
+			hit_len += int(f[7]) - int(f[6]) + 1
 	
-	# fhbl.close()
+	fhbl.close()
 	
-	# if DELETE_TMP:
-	# 	os.remove( gene + ".fa" )
-	# 	os.remove( gene + ".blastn.fmt6" )
+	if DELETE_TMP:
+		os.remove( gene + ".fa" )
+		os.remove( gene + ".blastn.fmt6" )
 	
-	# if hit_len/q_len > 0.9 and hit_len/q_len <= 1:
-	# 	sys.stderr.write( "The majority of the dsRNA sequence was found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	# elif hit_len/q_len <= 0.9:
-	# 	sys.stderr.write( "A significant part of the dsRNA couldn't be found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	# elif hit_len/q_len > 1:
-	# 	sys.stderr.write( "The sum of hits is greater than the dsRNA length: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
-	# else:
-	# 	sys.stderr.write( "You should never get here!\n" )
+	if hit_len/q_len > 0.9 and hit_len/q_len <= 1:
+		sys.stderr.write( "The majority of the dsRNA sequence was found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	elif hit_len/q_len <= 0.9:
+		sys.stderr.write( "A significant part of the dsRNA couldn't be found in the genome: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	elif hit_len/q_len > 1:
+		sys.stderr.write( "The sum of hits is greater than the dsRNA length: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
+	else:
+		sys.stderr.write( "You should never get here!\n" )
 
-	# sys.stderr.write( "Found the genomic locus of origin\n" )
+	sys.stderr.write( "Found the genomic locus of origin\n" )
 
-	# Now take all possible 21-nt sequences from the dsRNA sequence
-	# and blast it against the genome sequence
-	SIRNA_LEN = 20  # this is the default. Think twice before you change it!
+	# Now take all possible 21-nt sequences from the dsRNA sequence and blast it against the genome sequence
+	
+	SIRNA_LEN = SIRNA_LEN  # The default was intially set to 21. Think twice before you change it!
 
 	sys.stderr.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
 	
@@ -238,16 +230,16 @@ for gene in fasta:
 		chromosome  = f[1]
 
 		if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
-			for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
-				if chromosome == row['chromosome'] and siRNA_coord >= row['start'] and siRNA_coord <= row['end']:
-					# print(row['start'], row['end'], row['chromosome'])
-					properties[siRNA_name]["qc_specificity"] = 1
-
-			# for coord in s_coords:
-			# 	genome_coords = coord.split ( "\t" )
-				
-			# 	if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
+			# for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
+			# 	if chromosome == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
+			# 		# in blast 1st base is position 1
 			# 		properties[siRNA_name]["qc_specificity"] = 1
+
+			for coord in s_coords:
+				genome_coords = coord.split ( "\t" )
+				
+				if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
+					properties[siRNA_name]["qc_specificity"] = 1
 
 			# if the current good hit wasn't found within the coordinates of the locus of origin
 			# then this good hit is an off-target of the siRNA
