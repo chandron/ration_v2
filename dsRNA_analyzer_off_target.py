@@ -4,13 +4,18 @@ import os
 import getopt, sys
 import re
 # import gffutils
-import pandas as pd
+#import pandas as pd
 
-if len( sys.argv ) != 6 or os.path.exists( sys.argv[1] ) == False or os.path.exists( sys.argv[2] ) == False or os.path.exists( sys.argv[3] ) == False or os.path.exists( sys.argv[4] ) == False or os.path.exists( sys.argv[5] ) == False:
+if len( sys.argv ) != 6 \
+	or os.path.exists( sys.argv[1] ) == False \
+	or os.path.exists( sys.argv[2] ) == False \
+	or os.path.exists( sys.argv[3] ) == False \
+	or int(sys.argv[4]) < 15 or int(sys.argv[4]) > 32 \
+	or int(sys.argv[5]) < 300 or int(sys.argv[5]) > 700:
 	directories = sys.argv[0].split( "/" )
 	print(
 """
-Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)>
+Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)> <siRNA length 15-32> <dsRNA length 300-700>
 
 This script will take in a fasta file containing the mRNAs and
 evaluate their suitability as RNAi targets in a target organism.
@@ -23,9 +28,10 @@ as well as for other non-target organisms (NTOs).
 mRNAs = sys.argv[1]
 genome = sys.argv[2]
 NTOs   = sys.argv[3]
+siRNA_len= sys.argv[4]
 # GFF = sys.argv[4]
-DS_LEN = sys.argv[5]
-SIRNA_LEN= sys.argv[4]
+ds_len = sys.argv[5]
+
 
 DELETE_TMP = True  # delete temporary file
 CPUS = 8
@@ -165,7 +171,7 @@ for gene in fasta:
 
 	# Now take all possible 21-nt sequences from the dsRNA sequence and blast it against the genome sequence
 	
-	SIRNA_LEN = SIRNA_LEN  # The default was intially set to 21. Think twice before you change it!
+	SIRNA_LEN = int(siRNA_len)  # The default was intially set to 21. Think twice before you change it!
 
 	sys.stderr.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
 	
@@ -346,6 +352,7 @@ for gene in fasta:
 	# you'd like your dsRNA to contain as many good siRNAs
 	# as possible (to maximize the silencing effect)
 	# DS_LEN = 500 # the length of the dsRNA
+	DS_LEN = ds_len
 	
 	best_cnt = 0  # this is the highest number of good siRNAs
 		      # contained in a given dsRNA of length DS_LEN
