@@ -3,8 +3,7 @@
 import os
 import getopt, sys
 import re
-# import gffutils
-#import pandas as pd
+# import pandas as pd
 
 if len( sys.argv ) != 6 \
 	or os.path.exists( sys.argv[1] ) == False \
@@ -58,6 +57,7 @@ if not os.path.isfile(NTOs + ".nhr"):
 
 # #############################
 # # Import the genomic.gff file
+# # can use that for finding specificity on target gene rather than blasting
 # gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
 # gff_cds = gff[gff[2] == "CDS"]
 # gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
@@ -169,7 +169,7 @@ for gene in fasta:
 
 	sys.stderr.write( "Found the genomic locus of origin\n" )
 
-	# Now take all possible 21-nt sequences from the dsRNA sequence and blast it against the genome sequence
+	# Now take all possible sequences of length=siRNA_len from the dsRNA sequence and blast against the genome sequence
 	
 	SIRNA_LEN = int(siRNA_len)  # The default was intially set to 21. Think twice before you change it!
 
@@ -236,6 +236,7 @@ for gene in fasta:
 		chromosome  = f[1]
 
 		if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
+			## Modifications if want to examine specificity based on GFF file
 			# for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
 			# 	if chromosome == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
 			# 		# in blast 1st base is position 1
