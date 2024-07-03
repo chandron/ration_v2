@@ -124,7 +124,7 @@ for gene in fasta:
 	fhout.write( fasta[gene] + "\n" )
 	fhout.close()
 	sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
-	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 	if return_code != 0:
 		sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
 		exit( return_code )
@@ -215,7 +215,10 @@ for gene in fasta:
 	# BLAST the siRNA sequence against the genome of the target organism
 	# in order to verify specificity and find any off-targets
 
-	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	# # orig version
+	# return_code = os.system ( 'blastn -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+
+	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 		
 	if return_code > 0:
 		sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
