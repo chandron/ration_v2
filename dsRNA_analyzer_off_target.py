@@ -28,7 +28,7 @@ mRNAs = sys.argv[1]
 genome = sys.argv[2]
 NTOs   = sys.argv[3]
 siRNA_len= sys.argv[4]
-# GFF = sys.argv[4]
+# GFF = sys.argv[6]
 ds_len = sys.argv[5]
 
 
@@ -215,9 +215,10 @@ for gene in fasta:
 	# BLAST the siRNA sequence against the genome of the target organism
 	# in order to verify specificity and find any off-targets
 
-	# # orig version
+	# # original version
 	# return_code = os.system ( 'blastn -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 
+	# blastn-short
 	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 		
 	if return_code > 0:
@@ -272,7 +273,7 @@ for gene in fasta:
 	# return_code = os.system ( 'blastn -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 
 	# blastn-short
-	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + NTOs + ' -out siRNAs_NTOs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 	
 	if return_code > 0:
 		sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
