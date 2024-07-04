@@ -9,11 +9,11 @@ if len( sys.argv ) != 7 \
 	or os.path.exists( sys.argv[1] ) == False \
 	or os.path.exists( sys.argv[2] ) == False \
 	or os.path.exists( sys.argv[3] ) == False \
-	or int(sys.argv[4]) < 15 or int(sys.argv[4]) > 32:
+	or int(sys.argv[5]) < 15 or int(sys.argv[5]) > 32:
 	directories = sys.argv[0].split( "/" )
 	print(
 """
-Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)> <siRNA length 15-32> <dsRNA length>
+Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)> <GFF file> <siRNA length 15-32> <dsRNA length>
 
 This script will take in a fasta file containing the mRNAs and
 evaluate their suitability as RNAi targets in a target organism.
@@ -26,9 +26,9 @@ as well as for other non-target organisms (NTOs).
 mRNAs = sys.argv[1]
 genome = sys.argv[2]
 NTOs   = sys.argv[3]
-siRNA_len= sys.argv[4]
-GFF = sys.argv[6]
-ds_len = sys.argv[5]
+GFF = sys.argv[4]
+siRNA_len= sys.argv[5]
+ds_len = sys.argv[6]
 
 
 DELETE_TMP = True  # delete temporary file
@@ -57,7 +57,7 @@ if not os.path.isfile(NTOs + ".nhr"):
 #############################
 # Import the genomic.gff file
 # can use that for finding specificity on target gene rather than blasting
-gff = pd.read_csv(sys.argv[6], sep='\t', header=None, comment='#')
+gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
 gff_cds = gff[gff[2] == "CDS"]
 gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
 gff_cds = gff_cds[[9, 3, 4, 6, 0]]. rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'})
@@ -123,7 +123,7 @@ for gene in fasta:
 	fhout.write( fasta[gene] + "\n" )
 	fhout.close()
 	sys.stderr.write( "Find the genomic locus from which the dsRNA originates\n" )
-	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	return_code = os.system( 'blastn -query ' + tmp_file + ' -db ' + genome + ' -out ' + gene + '.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 1e-50 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 	if return_code != 0:
 		sys.stderr.write( "blastn exited with a non-zero exit code: " + return_code + "\n" )
 		exit( return_code )
