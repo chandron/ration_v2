@@ -98,7 +98,7 @@ sys.stderr.write( "Finished reading the dsRNA fasta file\n" )
 
 # open the file where you'll write the dsRNA sequence (and other details)
 fhout_dsRNA = open( "dsRNAs_per_gene.tsv", "w")
-fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tCount_of_good_siRNAs\tdsRNA_sequence\n" )
+fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tsiRNAs_not_targeting_NTOs\tsiRNAs_also_targeting_NTOs\tdsRNA_sequence\n" )
 
 # open the output files
 fhgood = open ( "siRNAs.good.tsv", "w" )
@@ -303,6 +303,9 @@ for gene in fasta:
 		      # (to be used in the next section)
 
 	for siRNA_name in properties:
+		
+		pos = int( siRNA_name.split("_")[-1] )
+
 		out = siRNA_name
 		out += "\t" + properties[siRNA_name]["sequence"]
 		out += "\t" + str(properties[siRNA_name]["qc_asymmetry"])
@@ -324,12 +327,11 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nto_offtargets"] == 0:
 			fhgood.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
 			good_pos.append( pos )
 		
 		# if this siRNA is satisfying the TO QC criteria but not the NTO QC then 
 		# print it in the "bad" siRNA output.
-		if properties[siRNA_name]["qc_asymmetry"] == 1 \
+		elif properties[siRNA_name]["qc_asymmetry"] == 1 \
 			and properties[siRNA_name]["qc_nt_runs"] == 0 \
 			and properties[siRNA_name]["qc_gc_content"] == 1 \
 			and properties[siRNA_name]["qc_specificity"] == 1 \
@@ -337,7 +339,6 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nto_offtargets"] == 1:
 			fhbad.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
 			bad_pos.append( pos )
 		
 		# if this siRNA is not satisfying the NTO QC criteria no matter the TO QC then 
@@ -345,8 +346,6 @@ for gene in fasta:
 		elif properties[siRNA_name]["qc_nto_offtargets"] == 1:
 			fhplainbad.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
-			bad_pos.append( pos )
 	
 	# End of results printing #####################
 
@@ -358,28 +357,27 @@ for gene in fasta:
 	# DS_LEN = 500 # the length of the dsRNA
 	DS_LEN = ds_len
 	
-	best_cnt = 0  # this is the highest number of good siRNAs
-		      # contained in a given dsRNA of length DS_LEN
+	best_good_cnt = 0 # this is the highest number of good siRNAs
+	best_bad_cnt = 0  # this is the highest number of bad siRNAs
+		              # contained in a given dsRNA of length DS_LEN
 	best_pos = -1 # and this is where the dsRNA starts
 
 	for i in range( 0, (q_len - int(DS_LEN) + 1) ):
-		curr_good_cnt = 0 # count of "good" siRNAs contained in the current dsRNA
+		curr_good_cnt = 0 # count of "good" siRNAs, i.e not hitting NTOs contained in the current dsRNA
+		
 		for pos in good_pos:
 			if pos > i and pos < i + int(DS_LEN):
 				curr_good_cnt += 1
 		
-		if curr_good_cnt > best_cnt:
-			best_cnt = curr_good_cnt
+		if curr_good_cnt > best_good_cnt:
+			best_good_cnt = curr_good_cnt
 			best_pos = i
 
-		curr_bad_cnt = 0 # count of "bad" siRNAs contained in the current dsRNA
-		for pos in good_pos:
-			if pos > i and pos < i + int(DS_LEN):
-				curr_bad_cnt += 1
-		
-		if curr_bad_cnt > best_cnt:
-			best_cnt = curr_bad_cnt
-			best_pos = i
+	# Find "bad" off-target siRNAs contained in best dsRNA segment
+	best_range = list(range(best_pos, best_pos + int(DS_LEN)))
+	for pos in bad_pos:
+		if pos >= best_range[0] and pos <= best_range[-1]:
+			best_bad_cnt += 1
 	
 	# get the sequence of the dsRNA
 	dsRNA_sequence = fasta[gene][best_pos:(best_pos + int(DS_LEN))]
@@ -389,7 +387,8 @@ for gene in fasta:
 	out += "\t" + str(best_pos)
 	out += "\t" + str(best_pos + int(DS_LEN))
 	out += "\t" + str(q_len)
-	out += "\t" + str(best_cnt)
+	out += "\t" + str(best_good_cnt)
+	out += "\t" + str(best_bad_cnt)
 	out += "\t" + dsRNA_sequence
 	out += "\n"
 	fhout_dsRNA.write( out )
