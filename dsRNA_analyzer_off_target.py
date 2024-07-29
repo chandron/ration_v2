@@ -6,7 +6,7 @@ import argparse
 import re
 # import pandas as pd
 
-parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets.')
+parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets in a target organism. It will also search for off-targets in the target organism as well as for other non-target organisms (NTOs).')
 # https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments
 requiredNamed = parser.add_argument_group('required named arguments')
 
@@ -33,7 +33,14 @@ ds_len = args.dsRNA_length
 mis = args.mismatches
 CPUS = args.threads
 
-
+#########################################
+def generate_siRNAs(sequence, si_length):
+    siRNA_sequences = []
+    for i in range(0, len(sequence) - si_length + 1):
+        kmer = sequence[i:i+si_length]
+        siRNA_sequences.append(kmer)
+    return siRNA_sequences
+#########################################
 DELETE_TMP = True  # delete temporary file
 
 # first, check if the genome is formatted
@@ -173,15 +180,15 @@ for gene in fasta:
 	# Now take all possible sequences of length=siRNA_len from the dsRNA sequence and blast against the genome sequence
 	
 	SIRNA_LEN = int(siRNA_len)  # The default was intially set to 21. Think twice before you change it!
-
+	siRNA_sequences = generate_siRNAs(fasta[gene], SIRNA_LEN)
+	
 	sys.stderr.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
 	
 	properties = {}
 	
 	fhout = open ( "siRNAs.fa", "w" )
 
-	for i in range( 0, len( fasta[gene] ) - SIRNA_LEN + 1 ):
-		siRNA = fasta[gene][ i: (i + SIRNA_LEN) ] # this is the siRNA sequence
+	for i, siRNA in enumerate(siRNA_sequences):
 		
 		siRNA_name = gene + "_" + str(i)
 		
