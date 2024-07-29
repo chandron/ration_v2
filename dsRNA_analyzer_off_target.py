@@ -1,38 +1,40 @@
 #!/usr/bin/python3
 
 import os
-import getopt, sys
+import sys
+import argparse
 import re
 # import pandas as pd
 
-if len( sys.argv ) != 6 \
-	or os.path.exists( sys.argv[1] ) == False \
-	or os.path.exists( sys.argv[2] ) == False \
-	or os.path.exists( sys.argv[3] ) == False \
-	or int(sys.argv[4]) < 15 or int(sys.argv[4]) > 32:
-	directories = sys.argv[0].split( "/" )
-	print(
-"""
-Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)> <siRNA length 15-32> <dsRNA length>
+parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets.')
+# https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments
+requiredNamed = parser.add_argument_group('required named arguments')
 
-This script will take in a fasta file containing the mRNAs and
-evaluate their suitability as RNAi targets in a target organism.
-It will also search for off-targets in the target organism
-as well as for other non-target organisms (NTOs).
+requiredNamed.add_argument('-i', '--input', help='path to input transcripts', required=True)
+requiredNamed.add_argument('-g', '--genome', help='path to target genome', required=True)
+requiredNamed.add_argument('-n', '--NTO_genome', help='path to NTO genome(s)', required=True)
+requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
+requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
+requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to genome')
+parser.add_argument('-p', '--threads', type=int, default=8, help='number of threads to use')
 
-""" % directories[-1] )
+try:
+	args = parser.parse_args()
+except argparse.ArgumentError:
+	print("missing options")
 	sys.exit(1)
 
-mRNAs = sys.argv[1]
-genome = sys.argv[2]
-NTOs   = sys.argv[3]
-siRNA_len= sys.argv[4]
+mRNAs = args.input
+genome = args.genome
+NTOs   = args.NTO_genome
+siRNA_len= args.siRNA_length
 # GFF = sys.argv[6]
-ds_len = sys.argv[5]
+ds_len = args.dsRNA_length
+mis = args.mismatches
+CPUS = args.threads
 
 
 DELETE_TMP = True  # delete temporary file
-CPUS = 8
 
 # first, check if the genome is formatted
 if not os.path.isfile(genome + ".nhr"):
@@ -287,7 +289,7 @@ for gene in fasta:
 		mismatches  = int(f[4])
 		gapopen     = int(f[5])
 		
-		if mismatches <= 2 and gapopen == 0:
+		if mismatches <= int(mis) and gapopen == 0:
 			properties[siRNA_name]["qc_nto_offtargets"] = 1
 	fhbl.close()
 	# if DELETE_TMP:
