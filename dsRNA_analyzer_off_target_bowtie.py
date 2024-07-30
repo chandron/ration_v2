@@ -1,45 +1,102 @@
 #!/usr/bin/python3
 
 import os
-import getopt, sys
+import sys
+import argparse
 import re
 import pandas as pd
+import subprocess
+import pysam
 
-if len( sys.argv ) != 7 \
-	or os.path.exists( sys.argv[1] ) == False \
-	or os.path.exists( sys.argv[2] ) == False \
-	or os.path.exists( sys.argv[3] ) == False \
-	or int(sys.argv[5]) < 15 or int(sys.argv[5]) > 32:
-	directories = sys.argv[0].split( "/" )
-	print(
-"""
-Usage: %s <fasta file containing the mRNAs> <genome sequence of the target organism (fasta file)> <genome sequences of non-target organisms (fasta file)> <siRNA length 15-32> <dsRNA length> <GFF file>
+parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets in a target organism. It will also search for off-targets in the target organism as well as for other non-target organisms (NTOs).')
+# https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments
+requiredNamed = parser.add_argument_group('required named arguments')
 
-This script will take in a fasta file containing the mRNAs and
-evaluate their suitability as RNAi targets in a target organism.
-It will also search for off-targets in the target organism
-as well as for other non-target organisms (NTOs).
+requiredNamed.add_argument('-i', '--input', help='path to input transcripts', required=True)
+requiredNamed.add_argument('-g', '--genome', help='path to target genome', required=True)
+requiredNamed.add_argument('-t', '--gff', help='GFF file of target genome', required=True)
+requiredNamed.add_argument('-n', '--NTO_genome', help='path to NTO genome(s)', required=True)
+requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
+requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
+requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to genome')
+parser.add_argument('-p', '--threads', type=int, default=8, help='number of threads to use')
 
-""" % directories[-1] )
+try:
+	args = parser.parse_args()
+except argparse.ArgumentError:
+	print("missing options")
 	sys.exit(1)
 
-mRNAs = sys.argv[1]
-genome = sys.argv[2]
-NTOs   = sys.argv[3]
-GFF = sys.argv[4]
-siRNA_len= sys.argv[5]
-ds_len = sys.argv[6]
+mRNAs = args.input
+genome = args.genome
+NTOs   = args.NTO_genome
+siRNA_len= args.siRNA_length
+GFF = args.gff
+ds_len = args.dsRNA_length
+mis = args.mismatches
+CPUS = args.threads
 
-
-DELETE_TMP = True  # delete temporary file
-CPUS = 8
-
+#########################################
 def generate_siRNAs(sequence, si_length):
     siRNA_sequences = []
     for i in range(0, len(sequence) - si_length + 1):
         kmer = sequence[i:i+si_length]
         siRNA_sequences.append(kmer)
     return siRNA_sequences
+
+def run_bowtie1(mis, index_prefix, siRNA_length):
+
+    bowtie1_command = [
+        "bowtie",
+        "-n", str(mis),
+        "-l", str(siRNA_length),
+        "-a",
+		# "--best",
+		# "--strata",
+        "-x", index_prefix,
+		"--no-unal",
+        "-f", "siRNAs.fa",
+        "-S", os.path.join(os.getcwd(), "combined_siRNAs.sam")
+    ]
+
+    try:
+        subprocess.run(bowtie1_command, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred: {str(e)}")
+
+    return os.path.join(os.getcwd(), "combined_siRNAs.sam")
+#########################################
+DELETE_TMP = True  # delete temporary file
+#########################################
+# bowtie1 index
+BT_IDX = os.path.splitext(genome)[0]+'_bowtie_idx'
+# Import the genomic.gff file
+# can use that for finding specificity on target gene rather than blasting
+# gff_dict ={}
+# with open(sys.argv[4]) as gff:
+# 	csvreader = csv.reader(gff, delimiter='\t')
+# 	for row in csvreader:
+# 		if not row[0].startswith('#'):
+# 			if row[2] == 'CDS':
+# 				xp = re.sub(r'^.+Name=([^;]+);.+$', r'\1', row[8])
+# 				gff_dict[xp] = row[0]
+# 				gff_dict[xp]['start'].join(row[3], "-" , row[4])
+
+# with open(GFF, 'r') as annot:
+# 	for line in annot:
+# 		g = line.strip.split( "\t" )	
+
+
+gff = pd.read_csv(GFF, sep='\t', header=None, comment='#')
+gff_cds = gff[gff[2] == "CDS"]
+gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
+gff_cds = gff_cds[[9, 3, 4, 6, 0]].rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
+
+
+gff_dict = gff_cds.set_index('CDS_name').T.to_dict('list')
+# gff_chrom = gff_cds.set_index('CDS_name')['chromosome'].to_dict()
+# gff_start = gff_cds.set_index('CDS_name')['start'].to_dict()
+#############################
 
 # # first, check if the genome is formatted
 # if not os.path.isfile(genome + ".nhr"):
@@ -61,17 +118,8 @@ if not os.path.isfile(NTOs + ".nhr"):
 	else:
 		sys.stderr.write( "makeblastdb finished successfully!\n" )
 
-#############################
-# Import the genomic.gff file
-# can use that for finding specificity on target gene rather than blasting
-gff = pd.read_csv(sys.argv[4], sep='\t', header=None, comment='#')
-gff_cds = gff[gff[2] == "CDS"]
-gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
-gff_cds = gff_cds[[9, 3, 4, 6, 0]]. rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'})
-#############################
 
 # then, open the fasta file containing the dsRNA sequences
-## IMPORTANT: fasta header(s) should contain the ID of the target gene
 fh1 = open ( mRNAs )
 
 line = fh1.readline()
@@ -96,8 +144,6 @@ while a:
 			if not line:
 				a = False
 				break
-		#print (header)
-		#print (sequence)
 		fasta[header] = sequence
 
 fh1.close()
@@ -106,7 +152,7 @@ sys.stderr.write( "Finished reading the dsRNA fasta file\n" )
 
 # open the file where you'll write the dsRNA sequence (and other details)
 fhout_dsRNA = open( "dsRNAs_per_gene.tsv", "w")
-fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tCount_of_good_siRNAs\tdsRNA_sequence\n" )
+fhout_dsRNA.write( "TranscriptID\tdsRNA_start\tdsRNA_stop\tTranscript_length\tsiRNAs_not_targeting_NTOs\tsiRNAs_also_targeting_NTOs\tdsRNA_sequence\n" )
 
 # open the output files
 fhgood = open ( "siRNAs.good.tsv", "w" )
@@ -180,13 +226,12 @@ for gene in fasta:
 	
 	SIRNA_LEN = int(siRNA_len)  # The default was intially set to 21. Think twice before you change it!
 	siRNA_sequences = generate_siRNAs(fasta[gene], SIRNA_LEN)
-
+	
 	sys.stderr.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
 	
 	properties = {}
 	
 	fhout = open ( "siRNAs.fa", "w" )
-	
 
 	for i, siRNA in enumerate(siRNA_sequences):
 		
@@ -220,54 +265,115 @@ for gene in fasta:
 
 	fhout.close()
 
-	# BLAST the siRNA sequence against the genome of the target organism
-	# in order to verify specificity and find any off-targets
+	# # BLAST the siRNA sequence against the genome of the target organism
+	# # in order to verify specificity and find any off-targets
 
-	# # original version
-	# return_code = os.system ( 'blastn -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	# # # original version
+	# # return_code = os.system ( 'blastn -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 10 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 
-	# blastn-short
-	return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
+	# # blastn-short
+	# return_code = os.system ( 'blastn -task blastn-short -query siRNAs.fa -db ' + genome + ' -out siRNAs.blastn.fmt6 -num_threads ' + str(CPUS) + ' -evalue 0.1 -word_size 7 -dust no -outfmt "6 std qlen slen staxids stitle"' )
 		
-	if return_code > 0:
-		sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
-		exit (return_code)
+	# if return_code > 0:
+	# 	sys.stderr.write( "blastn of one siRNA exited with a non-zero exit code: " + return_code + "\n" )
+	# 	exit (return_code)
 	
-	fhbl = open ( "siRNAs.blastn.fmt6" )
+	# fhbl = open ( "siRNAs.blastn.fmt6" )
+	sam_file_to = run_bowtie1(mis,BT_IDX, SIRNA_LEN)
 	
-	
-	for line in fhbl:
-		f = line.split( "\t" )
-		
-		cds_name	= re.sub(r'_\d+$', '', f[0])
-		siRNA_name      = f[0]
-		aln_length  = int(f[3])
-		mismatches  = int(f[4])
-		gapopen     = int(f[5])
-		siRNA_coord = int(f[8])
-		chromosome  = f[1]
+	with pysam.AlignmentFile(sam_file_to, "r") as samfile:
+		for read in samfile.fetch():
+			if not read.is_unmapped:
+				siRNA_name = read.query_name
+				cds_name	= re.sub(r'_\d+$', '', siRNA_name)
+				siRNA_coord = read.reference_start
+				# overlap = read.get_overlap(0, SIRNA_LEN)
+				mismatches = read.get_tag("NM")
+				ref_name = read.reference_name
+				aln_length = read.reference_length
+				query_sequence = read.query_sequence
+				perfect_matches = len(query_sequence) - mismatches
+				strand = "reverse" if read.is_reverse else "forward"
 
-		if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
-			# Modifications if want to examine specificity based on GFF file
-			for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
-				if chromosome == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
-					# in blast 1st base is position 1
+                # Check if the gene is lethal
+				# gene_name = ref_name
+                # if gene_name in all_lethals.get(species, []):
+                #     gene_name += "_LETHAL"
+				# alignment_result = {
+                #     "query_sequence": query_sequence,
+                #     "fasta_file": os.path.basename(BT_IDX).replace("_index", ".fna"),
+                #     "chromosome": ref_name,
+                #     "perfect_matches": perfect_matches,
+                #     "mismatches": mismatches,
+                #     "strand": strand
+                # }
+
+				# if aln_length >= (SIRNA_LEN - 2) and mismatches <= mis:
+				# Modifications if want to examine specificity based on GFF file
+				# Get chromosome for the particular transcript
+				chrom = set()
+				ranges = []
+				all_ranges = []
+				chrom = set(gff_cds[gff_cds['CDS_name'] == cds_name]['chromosome'].unique())
+				# Get start and end positions of the transcript and then create a list with all transcript positions
+				sedf = gff_cds[gff_cds['CDS_name'] == cds_name][['start', 'end']]
+				sedf['range'] = [list(range(i, j+1)) for i, j in sedf.values]
+				ranges = list(sedf['range'].values)
+				for sublist in ranges:
+					all_ranges.extend(sublist)
+
+				if (ref_name in chrom) and (siRNA_coord in all_ranges):
+					# is specific for target
 					properties[siRNA_name]["qc_specificity"] = 1
-
-			# for coord in s_coords:
-			# 	genome_coords = coord.split ( "\t" )
 				
-			# 	if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
-			# 		properties[siRNA_name]["qc_specificity"] = 1
+				if (ref_name in chrom) and (not siRNA_coord in all_ranges):
+					# is off target
+					properties[siRNA_name]["qc_offtargets"] = 1
+				
+				if not ref_name in chrom:
+					# is off target: alignment in wrong chromosome
+					properties[siRNA_name]["qc_offtargets"] = 1
 
-			# if the current good hit wasn't found within the coordinates of the locus of origin
-			# then this good hit is an off-target of the siRNA
-			if properties[siRNA_name]["qc_specificity"] == 0:
-				properties[siRNA_name]["qc_offtargets"] = 1
-	fhbl.close()
+				# for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
+				# 	if ref_name == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
+				# 		# is specific for target
+				# 		properties[siRNA_name]["qc_specificity"] = 1
+				# 	if ref_name != row['chromosome']:
+				# 		# correct chromosome but outside expected region
+				# 		properties[siRNA_name]["qc_offtargets"] = 1
 	
-	if DELETE_TMP:
-		os.remove( "siRNAs.blastn.fmt6" )
+	# for line in fhbl:
+	# 	f = line.split( "\t" )
+		
+	# 	cds_name	= re.sub(r'_\d+$', '', f[0])
+	# 	siRNA_name      = f[0]
+	# 	aln_length  = int(f[3])
+	# 	mismatches  = int(f[4])
+	# 	gapopen     = int(f[5])
+	# 	siRNA_coord = int(f[8])
+	# 	chromosome  = f[1]
+
+	# 	if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
+	# 		## Modifications if want to examine specificity based on GFF file
+	# 		# for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
+	# 		# 	if chromosome == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
+	# 		# 		# in blast 1st base is position 1
+	# 		# 		properties[siRNA_name]["qc_specificity"] = 1
+
+	# 		for coord in s_coords:
+	# 			genome_coords = coord.split ( "\t" )
+				
+	# 			if chromosome == genome_coords[0] and siRNA_coord >= int(genome_coords[1]) and siRNA_coord <= int(genome_coords[2]):
+	# 				properties[siRNA_name]["qc_specificity"] = 1
+
+	# 		# if the current good hit wasn't found within the coordinates of the locus of origin
+	# 		# then this good hit is an off-target of the siRNA
+	# 		if properties[siRNA_name]["qc_specificity"] == 0:
+	# 			properties[siRNA_name]["qc_offtargets"] = 1
+	# fhbl.close()
+	
+	# if DELETE_TMP:
+	# 	os.remove( "siRNAs.blastn.fmt6" )
 	### End of BLAST vs the target organism ##############################################
 
 
@@ -296,7 +402,7 @@ for gene in fasta:
 		mismatches  = int(f[4])
 		gapopen     = int(f[5])
 		
-		if mismatches <= 2 and gapopen == 0:
+		if mismatches <= int(mis) and gapopen == 0:
 			properties[siRNA_name]["qc_nto_offtargets"] = 1
 	fhbl.close()
 	# if DELETE_TMP:
@@ -312,6 +418,9 @@ for gene in fasta:
 		      # (to be used in the next section)
 
 	for siRNA_name in properties:
+		
+		pos = int( siRNA_name.split("_")[-1] )
+
 		out = siRNA_name
 		out += "\t" + properties[siRNA_name]["sequence"]
 		out += "\t" + str(properties[siRNA_name]["qc_asymmetry"])
@@ -333,12 +442,11 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nto_offtargets"] == 0:
 			fhgood.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
 			good_pos.append( pos )
 		
 		# if this siRNA is satisfying the TO QC criteria but not the NTO QC then 
 		# print it in the "bad" siRNA output.
-		if properties[siRNA_name]["qc_asymmetry"] == 1 \
+		elif properties[siRNA_name]["qc_asymmetry"] == 1 \
 			and properties[siRNA_name]["qc_nt_runs"] == 0 \
 			and properties[siRNA_name]["qc_gc_content"] == 1 \
 			and properties[siRNA_name]["qc_specificity"] == 1 \
@@ -346,7 +454,6 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nto_offtargets"] == 1:
 			fhbad.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
 			bad_pos.append( pos )
 		
 		# if this siRNA is not satisfying the NTO QC criteria no matter the TO QC then 
@@ -354,8 +461,6 @@ for gene in fasta:
 		elif properties[siRNA_name]["qc_nto_offtargets"] == 1:
 			fhplainbad.write( out )
 			
-			pos = int( siRNA_name.split("_")[-1] )
-			bad_pos.append( pos )
 	
 	# End of results printing #####################
 
@@ -367,28 +472,27 @@ for gene in fasta:
 	# DS_LEN = 500 # the length of the dsRNA
 	DS_LEN = ds_len
 	
-	best_cnt = 0  # this is the highest number of good siRNAs
-		      # contained in a given dsRNA of length DS_LEN
+	best_good_cnt = 0 # this is the highest number of good siRNAs
+	best_bad_cnt = 0  # this is the highest number of bad siRNAs
+		              # contained in a given dsRNA of length DS_LEN
 	best_pos = -1 # and this is where the dsRNA starts
 
 	for i in range( 0, (q_len - int(DS_LEN) + 1) ):
-		curr_good_cnt = 0 # count of "good" siRNAs contained in the current dsRNA
+		curr_good_cnt = 0 # count of "good" siRNAs, i.e not hitting NTOs contained in the current dsRNA
+		
 		for pos in good_pos:
 			if pos > i and pos < i + int(DS_LEN):
 				curr_good_cnt += 1
 		
-		if curr_good_cnt > best_cnt:
-			best_cnt = curr_good_cnt
+		if curr_good_cnt > best_good_cnt:
+			best_good_cnt = curr_good_cnt
 			best_pos = i
 
-		curr_bad_cnt = 0 # count of "bad" siRNAs contained in the current dsRNA
-		for pos in good_pos:
-			if pos > i and pos < i + int(DS_LEN):
-				curr_bad_cnt += 1
-		
-		if curr_bad_cnt > best_cnt:
-			best_cnt = curr_bad_cnt
-			best_pos = i
+	# Find "bad" off-target siRNAs contained in best dsRNA segment
+	best_range = list(range(best_pos, best_pos + int(DS_LEN)))
+	for pos in bad_pos:
+		if pos >= best_range[0] and pos <= best_range[-1]:
+			best_bad_cnt += 1
 	
 	# get the sequence of the dsRNA
 	dsRNA_sequence = fasta[gene][best_pos:(best_pos + int(DS_LEN))]
@@ -398,7 +502,8 @@ for gene in fasta:
 	out += "\t" + str(best_pos)
 	out += "\t" + str(best_pos + int(DS_LEN))
 	out += "\t" + str(q_len)
-	out += "\t" + str(best_cnt)
+	out += "\t" + str(best_good_cnt)
+	out += "\t" + str(best_bad_cnt)
 	out += "\t" + dsRNA_sequence
 	out += "\n"
 	fhout_dsRNA.write( out )
