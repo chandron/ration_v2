@@ -73,7 +73,7 @@ DELETE_TMP = True  # delete temporary file
 # Import the genomic.gff file
 # can use that for finding specificity on target gene rather than blasting
 gff = pd.read_csv(GFF, sep='\t', header=None, comment='#')
-gff_cds = gff[gff[2] == "CDS"]
+gff_cds = gff[gff[2] == "CDS"].copy()
 gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
 gff_cds = gff_cds[[9, 3, 4, 6, 0]].rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
 
