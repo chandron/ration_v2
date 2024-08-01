@@ -16,6 +16,7 @@ requiredNamed.add_argument('-i', '--input', help='path to input transcripts', re
 requiredNamed.add_argument('-g', '--genome', help='path to target genome', required=True)
 requiredNamed.add_argument('-t', '--gff', help='GFF file of target genome', required=True)
 requiredNamed.add_argument('-n', '--NTO_genome', help='path to NTO genome(s)', required=True)
+requiredNamed.add_argument('-a', '--NTO_ids', help='path to NTO ID(s)', required=True)
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
 requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to genome')
@@ -30,6 +31,7 @@ except argparse.ArgumentError:
 mRNAs = args.input
 genome = args.genome
 NTOs   = args.NTO_genome
+NTO_ids = args.NTO_ids
 siRNA_len= args.siRNA_length
 GFF = args.gff
 ds_len = args.dsRNA_length
@@ -262,6 +264,23 @@ for gene in fasta:
 				if mismatches <= mis:
 					properties[siRNA_name]["qc_nto_offtargets"] = 1
 
+	###################
+	## Create simplified form of NTO sam file to aid siRNA design
+	sam_df = pd.read_csv(sam_file_nto, sep='\t', comment='@', usecols=[0,2,3,12,13], header=0, names=['siRNA_name', 'NTO_hit', 'position', 'mismatched_bases', 'mismatches'])
+
+	sam_df['mismatched_bases'] = sam_df['mismatched_bases'].str.replace('MD:Z:','')
+	sam_df['mismatches'] = sam_df['mismatches'].str.replace('NM:i:', '')
+	sam_df['cds_name'] = sam_df['siRNA_name'].replace(r'_\d+$', '', regex=True)
+
+	# Add species info
+	acc_ids = pd.read_csv(NTO_ids, sep='\t', header=0, names=['NTO_hit', 'species'])
+
+	sam_df_merged = pd.merge(sam_df, acc_ids, how='left', on='NTO_hit').drop('cds_name', axis=1)
+	# Rearrange columns
+	sam_df_merged = sam_df_merged[['siRNA_name', 'NTO_hit', 'species', 'position', 'mismatched_bases', 'mismatches']]
+	
+	sam_df_merged.to_csv(gene + "_NTO_hits.tsv", index=False, sep='\t')
+	###################
 
 	# print the results for all siRNAs of the current gene #
 	good_pos = [] # this array will hold the position of the "good" siRNAs
