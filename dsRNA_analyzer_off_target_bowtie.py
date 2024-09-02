@@ -12,14 +12,13 @@ parser = argparse.ArgumentParser(description='This script reads in a list of tra
 # https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments
 requiredNamed = parser.add_argument_group('required named arguments')
 
-requiredNamed.add_argument('-i', '--input', help='path to input transcripts', required=True)
-requiredNamed.add_argument('-g', '--genome', help='path to target genome', required=True)
+requiredNamed.add_argument('-i', '--input', help='Path to input transcripts. This has to be a valid fasta/multi-fasta file', required=True)
+requiredNamed.add_argument('-g', '--genome', help='Path to target genome', required=True)
 requiredNamed.add_argument('-t', '--gff', help='GFF file of target genome', required=True)
-requiredNamed.add_argument('-n', '--NTO_genome', help='path to NTO genome(s)', required=True)
-requiredNamed.add_argument('-a', '--NTO_ids', help='path to NTO ID(s)', required=True)
+requiredNamed.add_argument('-n', '--NTO_genome', help='Path to list with NTO genome(s) - one per line', required=True)
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
-requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to genome')
+requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to target and NTO genome')
 parser.add_argument('-p', '--threads', type=int, default=8, help='number of threads to use')
 
 try:
@@ -31,12 +30,18 @@ except argparse.ArgumentError:
 mRNAs = args.input
 genome = args.genome
 NTOs   = args.NTO_genome
-NTO_ids = args.NTO_ids
 siRNA_len= args.siRNA_length
 GFF = args.gff
 ds_len = args.dsRNA_length
 mis = args.mismatches
 CPUS = args.threads
+
+## Check that NTO genomes are <=10
+with open(NTOs, 'r') as nto_check:
+	if len(nto_check.readlines()) > 10:
+		sys.stderr.write( "NTO genomes should be up to 10\n" )
+		sys.exit(1)
+
 
 #########################################
 def generate_siRNAs(sequence, si_length):
@@ -239,47 +244,89 @@ for gene in fasta:
 
 
 	#######################################
-	# NTO bowtie index
-	BT_IDX_NTO = os.path.splitext(NTOs)[0]+'_bowtie_idx'
+	### For every NTO genome in the NTO list map siRNAs
+	## First, create the df that will hold all the NTO files
+	sam_df_all = pd.DataFrame()
+	## Then create a list with all the NTOs
+	all_ntos = []
 
-	# Align with bowtie1 against NTOs
-	sys.stderr.write( "\nAligning to NTO(s) ...\n" )
-
-	sam_file_nto = run_bowtie1(mis, BT_IDX_NTO, SIRNA_LEN, gene + "_nto.sam")
-
-	with pysam.AlignmentFile(sam_file_nto, "r") as sam_nto:
-		for read in sam_nto.fetch():
-			if not read.is_unmapped:
-				siRNA_name = read.query_name
-				cds_name	= re.sub(r'_\d+$', '', siRNA_name)
-				siRNA_coord = read.reference_start
-				# overlap = read.get_overlap(0, SIRNA_LEN)
-				mismatches = read.get_tag("NM")
-				ref_name = read.reference_name
-				aln_length = read.reference_length
-				query_sequence = read.query_sequence
-				perfect_matches = len(query_sequence) - mismatches
-				strand = "reverse" if read.is_reverse else "forward"
-
-				if mismatches <= mis:
-					properties[siRNA_name]["qc_nto_offtargets"] = 1
-
-	###################
-	## Create simplified form of NTO sam file to aid siRNA design
-	sam_df = pd.read_csv(sam_file_nto, sep='\t', comment='@', usecols=[0,2,3,12,13], header=0, names=['siRNA_name', 'NTO_hit', 'position', 'mismatched_bases', 'mismatches'])
-
-	sam_df['mismatched_bases'] = sam_df['mismatched_bases'].str.replace('MD:Z:','')
-	sam_df['mismatches'] = sam_df['mismatches'].str.replace('NM:i:', '')
-	sam_df['cds_name'] = sam_df['siRNA_name'].replace(r'_\d+$', '', regex=True)
-
-	# Add species info
-	acc_ids = pd.read_csv(NTO_ids, sep='\t', header=0, names=['NTO_hit', 'species'])
-
-	sam_df_merged = pd.merge(sam_df, acc_ids, how='left', on='NTO_hit').drop('cds_name', axis=1)
-	# Rearrange columns
-	sam_df_merged = sam_df_merged[['siRNA_name', 'NTO_hit', 'species', 'position', 'mismatched_bases', 'mismatches']]
+	with open(NTOs, 'r') as ntos:
+		for line in ntos:
+			if not line.startswith("#"):
+				splitted = line.strip('\n').split('.')
+				all_ntos.append(splitted[0])
 	
-	sam_df_merged.to_csv(gene + "_NTO_hits.tsv", index=False, sep='\t')
+	# Iterate over NTOs
+	for nto in all_ntos:
+		# NTO bowtie index
+		BT_IDX_NTO = os.path.split(NTOs)[0] + '/' + nto + '_bowtie_idx'
+
+		# Align with bowtie1 against NTOs
+		sys.stderr.write( "\nAligning to NTO " + nto + " ...\n" )
+
+		sam_file_nto = run_bowtie1(mis, BT_IDX_NTO, SIRNA_LEN, gene + "_nto.sam")
+
+		with pysam.AlignmentFile(sam_file_nto, "r") as sam_nto:
+			for read in sam_nto.fetch():
+				if not read.is_unmapped:
+					siRNA_name = read.query_name
+					cds_name	= re.sub(r'_\d+$', '', siRNA_name)
+					siRNA_coord = read.reference_start
+					# overlap = read.get_overlap(0, SIRNA_LEN)
+					mismatches = read.get_tag("NM")
+					ref_name = read.reference_name
+					aln_length = read.reference_length
+					query_sequence = read.query_sequence
+					perfect_matches = len(query_sequence) - mismatches
+					strand = "reverse" if read.is_reverse else "forward"
+
+					if mismatches <= mis:
+						properties[siRNA_name]["qc_nto_offtargets"] = 1
+
+		###################
+		## Create simplified form of NTO sam file to aid siRNA design
+		sam_df = pd.read_csv(sam_file_nto, sep='\t', comment='@', usecols=[0,2,3,12,13], header=0, names=['siRNA_name', 'NTO_hit', 'position', 'mismatched_bases', 'mismatches'])
+
+		sam_df['mismatched_bases'] = sam_df['mismatched_bases'].str.replace('MD:Z:','')
+		sam_df['mismatches'] = sam_df['mismatches'].str.replace('NM:i:', '')
+		sam_df['cds_name'] = sam_df['siRNA_name'].replace(r'_\d+$', '', regex=True)
+	
+		### Add species info
+		# Get IDs from genomic fasta file...
+		sys.stderr.write( "\nGetting accession IDs from " + nto + " ...\n" )
+
+		# Get IDs from already parsed genomic fasta files with grep:
+		# grep ">" GCF_000001405.40_GRCh38.p14_genomic.fna | perl -pe 's/>([^ ]+) ([^ ]+) ([^ ]+) .+$/$1\t$2 $3/' > GCF_000001405.40.ids
+		accessions = {}
+		with open(os.path.split(NTOs)[0] + '/' + nto + '.ids', 'r') as id:
+			for line in id:
+				splitted = line.strip('\n').split('\t')
+				accessions[splitted[0]] = splitted[1]
+		
+		# # Otherwise get directly from fna file, but it takes longer to parse
+		# with open(os.path.split(NTOs)[0] + '/' + nto + '.fna', 'r') as fna:
+		# 	for line in fna.readlines():
+		# 		if ">" in line:
+		# 			match = re.search(r'>([^ ]+) ([^ ]+) ([^ ]+) .+$', line)
+		# 			accessions[match.group(1)] = match.group(2) + ' ' + match.group(3)
+
+		acc_ids = pd.DataFrame(accessions.items(), columns=['NTO_hit', 'species'])
+		# acc_ids = pd.read_csv(NTO_ids, sep='\t', header=0, names=['NTO_hit', 'species'])
+
+		# Merge accession IDs with SAM df
+		sam_df_merged = pd.merge(sam_df, acc_ids, how='left', on='NTO_hit').drop('cds_name', axis=1)
+		# Rearrange columns
+		sam_df_merged = sam_df_merged[['siRNA_name', 'NTO_hit', 'species', 'position', 'mismatched_bases', 'mismatches']]
+		
+		# Concat all NTO SAM dfs per input transcript
+		sam_df_all = pd.concat([sam_df_all, sam_df_merged])
+	
+	# Sort concatenated SAM df on siRNA name
+	sam_df_all['sort'] = sam_df_all['siRNA_name'].str.extract(r'_(\d+)$', expand=False).astype(int)
+	sam_df_all = sam_df_all.sort_values(by=['sort', 'species']).drop('sort', axis=1)
+
+	# Write concatenated SAM df to disk
+	sam_df_all.to_csv(gene + "_NTO_hits.tsv", index=False, sep='\t')
 	###################
 
 	# print the results for all siRNAs of the current gene #
