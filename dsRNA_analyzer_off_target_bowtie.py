@@ -100,8 +100,15 @@ sys.stderr.write( "Reading the fasta file containing the mRNAs\n" )
 while a:
 	line = line.strip()
 	if line.startswith( ">" ):
-		header = line[1:] # remove the leading ">"
-		
+		# Keep as header only the first part of the line before any empty spaces, also removing the leading ">"
+		header_match = re.search(r'^>([^ ]+).*$', line)
+		header = header_match.group(1)
+		# header = line[1:] # remove the leading ">"
+		# Check whether header is included in GFF file. If not, abort the script
+		if not gff_cds['CDS_name'].str.contains(header).any():
+			sys.stderr.write( "This FASTA header does not exist in the annotation file of the target organism. Please use a valid CDS Name as FASTA header. See example input transcript file.\n" )
+			sys.exit(1)
+
 		sequence = ""
 		line = fh1.readline()
 		while not line.startswith( ">" ):
