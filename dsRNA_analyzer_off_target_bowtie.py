@@ -15,7 +15,7 @@ requiredNamed = parser.add_argument_group('required named arguments')
 requiredNamed.add_argument('-i', '--input', help='Path to input transcripts. This has to be a valid fasta/multi-fasta file', required=True)
 requiredNamed.add_argument('-g', '--genome', help='Path to target genome', required=True)
 requiredNamed.add_argument('-t', '--gff', help='GFF file of target genome', required=True)
-requiredNamed.add_argument('-n', '--NTO_genome', help='Path to list with NTO genome(s) - one per line', required=True)
+requiredNamed.add_argument('-n', '--NTO_genome', help='Path to list with NTO genome(s) - one per line ID and name, tab-separated', required=True)
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
 requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to target and NTO genome')
@@ -219,7 +219,7 @@ for gene in fasta:
 	# Align siRNAs to genome
 	sys.stderr.write( "\nAligning to target organism(s) ...\n" )
 
-	sam_file_to = run_bowtie1(mis, BT_IDX, SIRNA_LEN, gene + ".sam")
+	sam_file_to = run_bowtie1(mis, BT_IDX, SIRNA_LEN, gene + "_to.sam")
 	
 	with pysam.AlignmentFile(sam_file_to, "r") as sam_to:
 		for read in sam_to.fetch():
@@ -260,16 +260,17 @@ for gene in fasta:
 	with open(NTOs, 'r') as ntos:
 		for line in ntos:
 			if not line.startswith("#"):
-				splitted = line.strip('\n').split('.')
+				splitted = line.strip('\n').split('\t')
 				all_ntos.append(splitted[0])
 	
 	# Iterate over NTOs
 	for nto in all_ntos:
+		nto_id = nto.rsplit('.', 1)
 		# NTO bowtie index
-		BT_IDX_NTO = os.path.split(NTOs)[0] + '/' + nto + '_bowtie_idx'
+		BT_IDX_NTO = os.path.split(NTOs)[0] + '/' + nto_id[0] + '_bowtie_idx'
 
 		# Align with bowtie1 against NTOs
-		sys.stderr.write( "\nAligning to NTO " + nto + " ...\n" )
+		sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto_id[0] + " ...\n" )
 
 		sam_file_nto = run_bowtie1(mis, BT_IDX_NTO, SIRNA_LEN, gene + "_nto.sam")
 
