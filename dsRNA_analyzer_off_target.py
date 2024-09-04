@@ -54,7 +54,7 @@ if not os.path.isfile(genome + ".nhr"):
 		sys.stderr.write( "makeblastdb finished successfully!\n" )
 
 # Also check if the genomes of the NTOs are formatted
-if not os.path.isfile(NTOs + ".nhr"):
+if not os.path.isfile(NTOs + ".njs"):
 	sys.stderr.write ( "NTOs genomes are not formatted. Running makeblastdb...\n" )
 	return_code = os.system( "makeblastdb -in " + NTOs + " -dbtype nucl" )
 	if return_code != 0:
@@ -248,12 +248,6 @@ for gene in fasta:
 		chromosome  = f[1]
 
 		if aln_length >= (SIRNA_LEN - 2) and mismatches <= 2 and gapopen == 0:
-			## Modifications if want to examine specificity based on GFF file
-			# for index, row in gff_cds[gff_cds['CDS_name'] == cds_name].loc[:, ['start', 'end', 'chromosome']].iterrows():
-			# 	if chromosome == row['chromosome'] and siRNA_coord >= (row['start']) and siRNA_coord <= (row['end']):
-			# 		# in blast 1st base is position 1
-			# 		properties[siRNA_name]["qc_specificity"] = 1
-
 			for coord in s_coords:
 				genome_coords = coord.split ( "\t" )
 				
