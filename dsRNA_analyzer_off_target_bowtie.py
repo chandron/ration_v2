@@ -82,8 +82,10 @@ DELETE_TMP = True  # delete temporary file
 gff = pd.read_csv(GFF, sep='\t', header=None, comment='#')
 gff_cds = gff[gff[2] == "CDS"].copy()
 gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
-gff_cds = gff_cds[[9, 3, 4, 6, 0]].rename(columns={9:'CDS_name', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
-
+gff_cds[10] = gff_cds[8].replace(to_replace=r'^.+Dbxref=GeneID:([^,]+),.+$', value=r'\1',regex=True)
+gff_cds[11] = gff_cds[8].replace(to_replace=r'^.+Parent=rna-([^;]+);.+$', value=r'\1',regex=True)
+gff_cds = gff_cds[[9, 10, 11, 3, 4, 6, 0]].rename(columns={9:'CDS_name', 10:'GeneID', 11:'mRNA', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
+# gff_cds.to_csv("delme", index=False, sep='\t')
 #############################
 
 # open the fasta file containing the dsRNA sequences
@@ -105,8 +107,10 @@ while a:
 		header = header_match.group(1)
 		# header = line[1:] # remove the leading ">"
 		# Check whether header is included in GFF file. If not, abort the script
-		if not gff_cds['CDS_name'].str.contains(header).any():
-			sys.stderr.write( "This FASTA header does not exist in the annotation file of the target organism. Please use a valid CDS Name as FASTA header. See example input transcript file.\n" )
+		if not ((gff_cds['CDS_name'].str.contains(header).any()) or \
+		        (gff_cds['GeneID'].str.contains(header).any()) or \
+			    (gff_cds['mRNA'].str.contains(header).any())):
+			sys.stderr.write( "This FASTA header does not exist in the annotation file of the target organism. Please use a valid CDS/mRNA Name as FASTA header. See example input transcript file.\n" )
 			sys.exit(1)
 
 		sequence = ""
