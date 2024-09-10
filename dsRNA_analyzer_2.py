@@ -13,9 +13,11 @@ parser = argparse.ArgumentParser(description='This script reads in a list of tra
 requiredNamed = parser.add_argument_group('required named arguments')
 
 requiredNamed.add_argument('-i', '--input', help='Path to input transcripts. This has to be a valid fasta/multi-fasta file', required=True)
-requiredNamed.add_argument('-g', '--genome', help='Path to target genome', required=True)
-requiredNamed.add_argument('-t', '--gff', help='GFF file of target genome', required=True)
-requiredNamed.add_argument('-n', '--NTO_genome', help='Path to list with NTO genome(s) - one per line ID and name, tab-separated', required=True)
+requiredNamed.add_argument('-o', '--Organism_db', help='Mapping of organisms - one per line ID and scientific name, tab-separated', required=True)
+requiredNamed.add_argument('-t', '--target_genome', help='Path to target organism genome', required=True)
+requiredNamed.add_argument('-f', '--gff', help='GFF file of target genome', required=True)
+requiredNamed.add_argument('-n', '--NTO', help='List of NTO(s) considered in this run; Scientific names separated by semicolon(;)', required=True)
+requiredNamed.add_argument('-a', '--NTO_genomes', help='Path to non-target organism genome(s)', required=True)
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
 requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to target and NTO genome')
@@ -28,20 +30,33 @@ except argparse.ArgumentError:
 	sys.exit(1)
 
 mRNAs = args.input
-genome = args.genome
-NTOs   = args.NTO_genome
+genome = args.target_genome
+NTO   = args.NTO
+NTO_GENOMES = args.NTO_genomes
+Organism_db = args.Organism_db
 siRNA_len= args.siRNA_length
 GFF = args.gff
 ds_len = args.dsRNA_length
 mis = args.mismatches
 CPUS = args.threads
 
-## Check that NTO genomes are <=10
-with open(NTOs, 'r') as nto_check:
-	if len(nto_check.readlines()) > 10:
-		sys.stderr.write( "NTO genomes should be up to 10\n" )
-		sys.exit(1)
+##########################################
+# Store organisms from organisms_db
+organisms = {}
+with open(Organism_db, 'r') as orgs:
+	for line in orgs:
+		if not line.startswith("#"):
+			splitted = line.strip('\n').split('\t')
+			organisms[splitted[1]] = splitted[0]
 
+# Read command-line argument with NTOs
+nto_args = []
+nto_args = [s.strip() for s in NTO.split(';')]
+
+## Check that NTOs are <=10
+if len(nto_args) > 10:
+	sys.stderr.write( "NTOs should be up to 10\n" )
+	sys.exit(1)
 
 #########################################
 def generate_siRNAs(sequence, si_length):
@@ -256,22 +271,14 @@ for gene in fasta:
 
 	#######################################
 	### For every NTO genome in the NTO list map siRNAs
-	## First, create the df that will hold all the NTO files
+	## Create the df that will hold all the NTO files
 	sam_df_all = pd.DataFrame()
-	## Then create a list with all the NTOs
-	all_ntos = []
-
-	with open(NTOs, 'r') as ntos:
-		for line in ntos:
-			if not line.startswith("#"):
-				splitted = line.strip('\n').split('\t')
-				all_ntos.append(splitted[0])
 	
 	# Iterate over NTOs
-	for nto in all_ntos:
-		nto_id = nto.rsplit('.', 1)
+	for nto in nto_args:
+		nto_id = organisms[nto].rsplit('.', 1)
 		# NTO bowtie index
-		BT_IDX_NTO = os.path.split(NTOs)[0] + '/' + nto_id[0] + '_bowtie_idx'
+		BT_IDX_NTO = os.path.split(NTO_GENOMES)[0] + '/' + nto_id[0] + '_bowtie_idx'
 
 		# Align with bowtie1 against NTOs
 		sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto_id[0] + " ...\n" )
@@ -310,7 +317,7 @@ for gene in fasta:
 		# Get IDs from already parsed genomic fasta files with grep:
 		# grep ">" GCF_000001405.40_GRCh38.p14_genomic.fna | perl -pe 's/>([^ ]+) ([^ ]+) ([^ ]+) .+$/$1\t$2 $3/' > GCF_000001405.40.ids
 		accessions = {}
-		with open(os.path.split(NTOs)[0] + '/' + nto + '.ids', 'r') as id:
+		with open(os.path.split(NTO_GENOMES)[0] + '/' + organisms[nto] + '.ids', 'r') as id:
 			for line in id:
 				splitted = line.strip('\n').split('\t')
 				accessions[splitted[0]] = splitted[1]
