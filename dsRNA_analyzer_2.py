@@ -55,11 +55,15 @@ with open(Organism_db, 'r') as orgs:
 			organisms[splitted[1]] = splitted[0]
 			gff_input[splitted[1]] = splitted[3]
 
-# Read command-line argument with NTOs
-nto_args = []
-nto_args = [s.strip() for s in NTO.split(';')]
+# Confirm that TO is only 1 by checking for the presence of common delimiters
+if re.findall(r'[\t,;\|\$]', TO):
+	sys.stderr.write( "Only 1 target organism expected\n" )
+	sys.exit(1)
 
-## Check that NTOs are <=10
+# Read NTO command-line argument
+nto_args = []
+nto_args = [s.strip() for s in re.split(r'[,;\|]', NTO)]
+## .. and check that NTOs are <=10
 if len(nto_args) > 10:
 	sys.stderr.write( "NTOs should be up to 10\n" )
 	sys.exit(1)
@@ -120,7 +124,7 @@ fasta = {} # this will hold the sequences of the fasta file
 
 a = True
 
-sys.stderr.write( "Reading the fasta file containing the mRNAs\n" )
+sys.stderr.write( "Reading the fasta file containing the input transcript(s)\n" )
 
 while a:
 	line = line.strip()
@@ -149,7 +153,7 @@ while a:
 
 fh1.close()
 
-sys.stderr.write( "Finished reading the dsRNA fasta file\n" )
+# sys.stderr.write( "Finished reading the dsRNA fasta file\n" )
 
 # open the file where you'll write the dsRNA sequence (and other details)
 fhout_dsRNA = open( "dsRNAs_per_gene.tsv", "w")
@@ -170,7 +174,7 @@ fhplainbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC
 # Now loop through the fasta dictionary and analyze each sequence
 #sys.stderr.write( "\nAnalyzing each gene separately\n" )
 for gene in fasta:
-	sys.stderr.write( "\nAnalyzing gene: " + gene + "...\n" )
+	sys.stderr.write( "\n---------------------------------\n---------------------------------\nAnalyzing: " + gene + "...\n" )
 	
 	tmp_file = gene + ".fa"
 	fhout = open ( tmp_file, "w" )
@@ -245,7 +249,7 @@ for gene in fasta:
 	BT_IDX = os.path.splitext(TO_GENOME)[0] + '/' + to_id[0] + '_bowtie_idx'
 
 	# Align siRNAs to genome
-	sys.stderr.write( "\nAligning to target organism(s) ...\n" )
+	sys.stderr.write( "\nMapping siRNAs from " + gene + " to target organism " + TO + "...\n" )
 
 	sam_file_to = run_bowtie1(mis, BT_IDX, SIRNA_LEN, gene + "_to.sam")
 	
@@ -290,7 +294,8 @@ for gene in fasta:
 		BT_IDX_NTO = os.path.split(NTO_GENOMES)[0] + '/' + nto_id[0] + '_bowtie_idx'
 
 		# Align with bowtie1 against NTOs
-		sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto_id[0] + " ...\n" )
+		sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto + " ...\n" )
+		# sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto_id[0] + " ...\n" )
 
 		sam_file_nto = run_bowtie1(mis, BT_IDX_NTO, SIRNA_LEN, gene + "_nto.sam")
 
@@ -321,7 +326,7 @@ for gene in fasta:
 	
 		### Add species info
 		# Get IDs from genomic fasta file...
-		sys.stderr.write( "\nGetting accession IDs from " + nto + " ...\n" )
+		# sys.stderr.write( "\nGetting accession IDs from " + nto + " ...\n" )
 
 		# Get IDs from already parsed genomic fasta files with grep:
 		# grep ">" GCF_000001405.40_GRCh38.p14_genomic.fna | perl -pe 's/>([^ ]+) ([^ ]+) ([^ ]+) .+$/$1\t$2 $3/' > GCF_000001405.40.ids
