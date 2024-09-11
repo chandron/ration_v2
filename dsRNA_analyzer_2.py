@@ -13,11 +13,15 @@ parser = argparse.ArgumentParser(description='This script reads in a list of tra
 requiredNamed = parser.add_argument_group('required named arguments')
 
 requiredNamed.add_argument('-i', '--input', help='Path to input transcripts. This has to be a valid fasta/multi-fasta file', required=True)
+
 requiredNamed.add_argument('-o', '--Organism_db', help='Mapping of organisms - one per line ID and scientific name, tab-separated', required=True)
-requiredNamed.add_argument('-t', '--target_genome', help='Path to target organism genome', required=True)
-requiredNamed.add_argument('-f', '--gff', help='GFF file of target genome', required=True)
+
+requiredNamed.add_argument('-t', '--TO', help='Target organism; Use scientific name', required=True)
+requiredNamed.add_argument('-f', '--TO_genome', help='Path to target organism genome and GFF files', required=True)
+
 requiredNamed.add_argument('-n', '--NTO', help='List of NTO(s) considered in this run; Scientific names separated by semicolon(;)', required=True)
 requiredNamed.add_argument('-a', '--NTO_genomes', help='Path to non-target organism genome(s)', required=True)
+
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
 requiredNamed.add_argument('-m', '--mismatches', type=int, default=2, help='number of mismatches allowed when matching siRNAs to target and NTO genome')
@@ -30,12 +34,12 @@ except argparse.ArgumentError:
 	sys.exit(1)
 
 mRNAs = args.input
-genome = args.target_genome
+TO_GENOME = args.TO_genome
+TO = args.TO
 NTO   = args.NTO
 NTO_GENOMES = args.NTO_genomes
 Organism_db = args.Organism_db
 siRNA_len= args.siRNA_length
-GFF = args.gff
 ds_len = args.dsRNA_length
 mis = args.mismatches
 CPUS = args.threads
@@ -43,11 +47,13 @@ CPUS = args.threads
 ##########################################
 # Store organisms from organisms_db
 organisms = {}
+gff_input = {}
 with open(Organism_db, 'r') as orgs:
 	for line in orgs:
 		if not line.startswith("#"):
 			splitted = line.strip('\n').split('\t')
 			organisms[splitted[1]] = splitted[0]
+			gff_input[splitted[1]] = splitted[3]
 
 # Read command-line argument with NTOs
 nto_args = []
@@ -92,8 +98,10 @@ def run_bowtie1(mis, index_prefix, siRNA_length, sam_out):
 #########################################
 DELETE_TMP = True  # delete temporary file
 #########################################
-# Import the genomic.gff file
+# Import the target genome.gff file
 # can use that for finding specificity on target gene rather than blasting
+GFF = os.path.split(TO_GENOME)[0] + '/' + gff_input[TO]
+
 gff = pd.read_csv(GFF, sep='\t', header=None, comment='#')
 gff_cds = gff[gff[2] == "CDS"].copy()
 gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
@@ -233,7 +241,8 @@ for gene in fasta:
 		all_ranges.extend(sublist)
 	##############################
 	# bowtie1 target organism index
-	BT_IDX = os.path.splitext(genome)[0]+'_bowtie_idx'
+	to_id = organisms[TO].rsplit('.', 1)
+	BT_IDX = os.path.splitext(TO_GENOME)[0] + '/' + to_id[0] + '_bowtie_idx'
 
 	# Align siRNAs to genome
 	sys.stderr.write( "\nAligning to target organism(s) ...\n" )
