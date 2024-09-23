@@ -467,3 +467,19 @@ fhbad.close()
 fhplainbad.close()
 fhall.close()
 fhout_dsRNA.close()
+
+## Remove potentially un-necessary files #############################
+## Comment out if required for debugging #############################
+
+curr_dir = os.listdir(os.getcwd())
+for file in curr_dir:
+	## Delete sam files
+	if file.endswith(".sam"):
+		os.remove(file)
+	## File with siRNAs matching NTOs
+	if ".bad." in file:
+		os.remove(file)
+
+	## File with siRNAs tick all the "wrong boxes"
+	if ".plainbad." in file:
+		os.remove(file)
