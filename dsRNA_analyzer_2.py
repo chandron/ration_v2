@@ -8,7 +8,7 @@ import pandas as pd
 import subprocess
 import pysam
 
-parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets in a target organism. It will also search for off-targets in the target organism as well as for other non-target organisms (NTOs).')
+parser = argparse.ArgumentParser(description='This script reads in a list of transcripts and evaluates their suitability as RNAi targets in a target organism. It will also search for off-targets in the target organism as well as potential hits in non-target organisms (NTOs).')
 # https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments
 requiredNamed = parser.add_argument_group('required named arguments')
 
