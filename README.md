@@ -1,4 +1,4 @@
-![](RATION_logo.png)
+![RATION logo](RATION_footer.jpg)
 
 ### `dsRNA_analyzer_2.py` ###
 
