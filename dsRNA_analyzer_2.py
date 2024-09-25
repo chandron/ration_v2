@@ -234,6 +234,7 @@ for gene in fasta:
 	## Get chromosome and start-end ranges for the particular transcript
 	chrom = set()
 	ranges = []
+	CDS_ranges = []
 	all_ranges = []
 	
 	chrom = set(gff_cds[gff_cds['CDS_name'] == gene]['chromosome'].unique())
@@ -242,7 +243,11 @@ for gene in fasta:
 	start_end_pos['range'] = [list(range(i, j+1)) for i, j in start_end_pos.values]
 	ranges = list(start_end_pos['range'].values)
 	for sublist in ranges:
-		all_ranges.extend(sublist)
+		CDS_ranges.extend(sublist)
+
+	# sort CDS_ranges and create new list from start and end
+	CDS_ranges.sort()
+	all_ranges = [x for x in range(CDS_ranges[1], CDS_ranges[-1])]
 	##############################
 	# bowtie1 target organism index
 	to_id = organisms[TO].rsplit('.', 1)
@@ -473,9 +478,9 @@ fhout_dsRNA.close()
 
 curr_dir = os.listdir(os.getcwd())
 for file in curr_dir:
-	## Delete sam files
-	if file.endswith(".sam"):
-		os.remove(file)
+	# ## Delete sam files
+	# if file.endswith(".sam"):
+	# 	os.remove(file)
 	## File with siRNAs matching NTOs
 	if ".bad." in file:
 		os.remove(file)
