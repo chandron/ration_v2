@@ -478,9 +478,9 @@ fhout_dsRNA.close()
 
 curr_dir = os.listdir(os.getcwd())
 for file in curr_dir:
-	# ## Delete sam files
-	# if file.endswith(".sam"):
-	# 	os.remove(file)
+	## Delete sam files
+	if file.endswith(".sam"):
+		os.remove(file)
 	## File with siRNAs matching NTOs
 	if ".bad." in file:
 		os.remove(file)
