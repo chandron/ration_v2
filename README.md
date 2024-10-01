@@ -36,6 +36,7 @@ required named arguments:
   -m MISMATCHES, --mismatches MISMATCHES
             number of mismatches allowed when matching siRNAs to target and NTO genome
 ```
+
 ### 2. Dependencies ###
 - [bowtie](https://bowtie-bio.sourceforge.net/index.shtml): fast, short DNA aligner.
 - [NCBI datasets command line tool](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/download-and-install/). Used to download genomes and GFF file.
@@ -51,6 +52,23 @@ required named arguments:
 ### 3. Overview ###
 
 ![dsRNA_analyzer_2 workflow](dsRNA_analyzer_2.svg)
+
+Run the script per the following example. `Ldec_psmb5_actin.fa` is a multi-fasta file containing `Leptinotarsa decemlineata` `psmb5` [XP_023014076.1] and `actin` [XP_023024442.1] input transcripts:
+
+- [Leptinotarsa decemlineata psmb5 \[XP_023014076.1\] and actin \[XP_023024442.1\] input transcripts](Ldec_psmb5_actin.mod.fa)
+    
+	```
+	python dsRNA_analyzer_2.py \
+	-i Ldec_psmb5_actin.fa \
+	-o [Path to master file with all organisms] \
+	-t "Leptinotarsa_decemlineata" \
+	-f [Path to target organism genome and GFF files] \
+	-n "Drosophila melanogaster;Folsomia candida; Apis mellifera" \
+	-a [Path to NTO genomes] \
+	-s 20 \
+	-d 500 \
+	-m 2
+   ```
 
 ### 4. Output ###
 - Examples use transcripts from `Colorado potato beetle` [Leptinotarsa decemlineata] `psmb5` [XP_023014076.1] and `actin` [XP_023024442.1] genes.
@@ -136,9 +154,6 @@ required named arguments:
    b. Unzip the downloaded file and create symbolic links to the **genome** and **GFF**, while at the same time simplifying names, eg:
     
 		ln -s ncbi_dataset/data/GCF_000500325.1_Ldec_2.0_genomic.fna GCF_000500325.1.fna
-		
-		and
-	
 		ln -s ncbi_dataset/data/genomic.gff GCF_000500325.1.gff
 	
 	**Make sure to follow the above naming conventions and that the "base" names (eg GCF_000500325.1) for the .fna and .gff files are the same**.
@@ -182,17 +197,4 @@ required named arguments:
 	| GCF_907165205.1.fna  | Coccinella septempunctata | ladybug                |                     |
 	| GCF_910591885.1.fna  | Bombus terrestris         | bumblebee              |                     |
 
-6. Run the script per the following example. Input transcripts are `Leptinotarsa decemlineata` `psmb5` [XP_023014076.1] and `actin` [XP_023024442.1] in a multi-fasta file:
-    
-	```
-	python dsRNA_analyzer_2.py \
-	-i Ldec_psmb5_actin.fa \
-	-o [Path to master file with all organisms] \
-	-t "Leptinotarsa_decemlineata" \
-	-f [Path to target organism genome and GFF files] \
-	-n "Drosophila melanogaster;Folsomia candida; Apis mellifera" \
-	-a [Path to NTO genomes] \
-	-s 20 \
-	-d 500 \
-	-m 2
-   ```
+
