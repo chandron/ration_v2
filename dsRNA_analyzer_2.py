@@ -348,7 +348,7 @@ for gene in fasta:
 		# 			match = re.search(r'>([^ ]+) ([^ ]+) ([^ ]+) .+$', line)
 		# 			accessions[match.group(1)] = match.group(2) + ' ' + match.group(3)
 
-		acc_ids = pd.DataFrame(accessions.items(), columns=['NTO_hit', 'species'])
+		acc_ids = pd.DataFrame(list(accessions.items()), columns=['NTO_hit', 'species'])
 		# acc_ids = pd.read_csv(NTO_ids, sep='\t', header=0, names=['NTO_hit', 'species'])
 
 		# Merge accession IDs with SAM df
