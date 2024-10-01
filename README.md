@@ -57,19 +57,19 @@ Run the script per the following example. `Ldec_psmb5_actin.fa` is a multi-fasta
 
 - [Leptinotarsa decemlineata psmb5 \[XP_023014076.1\] and actin \[XP_023024442.1\] input transcripts](Ldec_psmb5_actin.mod.fa)
     
-	```
-	python dsRNA_analyzer_2.py \
-	-i Ldec_psmb5_actin.fa \
-	-o [Path to master file with all organisms] \
-	-t "Leptinotarsa_decemlineata" \
-	-f [Path to target organism genome and GFF files] \
-	-n "Drosophila melanogaster;Folsomia candida; Apis mellifera" \
-	-a [Path to NTO genomes] \
-	-s 20 \
-	-d 500 \
-	-m 2
-   ```
-
+```
+python dsRNA_analyzer_2.py \
+-i Ldec_psmb5_actin.fa \
+-o [Path to master file with all organisms] \
+-t "Leptinotarsa_decemlineata" \
+-f [Path to target organism genome and GFF files] \
+-n "Drosophila melanogaster;Folsomia candida; Apis mellifera" \
+-a [Path to NTO genomes] \
+-s 20 \
+-d 500 \
+-m 2
+ ```
+---
 ### 4. Output ###
 - Examples use transcripts from `Colorado potato beetle` [Leptinotarsa decemlineata] `psmb5` [XP_023014076.1] and `actin` [XP_023024442.1] genes.
 
@@ -142,7 +142,9 @@ Run the script per the following example. `Ldec_psmb5_actin.fa` is a multi-fasta
 
 - In addition to the three tables above, a multi-fasta file containing all generated siRNAs and a subset of `siRNAs.all.tsv` containing only the siRNAs that have passedall tests (`siRNAs.good.tsv`), are provided for convenience.
 
-### 5. How to prepare input data and run the script ###
+---
+
+### 5. How to prepare input data ###
 
 1. Create directories to hold the target organism (**TO**) and non-target organisms (**NTO**) genomic data. 
 2. Obtain the **target organism (TO)** genome and GFF (annotation) files.
