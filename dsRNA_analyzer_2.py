@@ -64,8 +64,8 @@ if re.findall(r'[\t,;\|\$]', TO):
 nto_args = []
 nto_args = [s.strip() for s in re.split(r'[,;\|]', NTO)]
 ## .. and check that NTOs are <=10
-if len(nto_args) > 10:
-	sys.stderr.write( "NTOs should be up to 10\n" )
+if len(nto_args) > 20:
+	sys.stderr.write( "NTOs should be up to 20\n" )
 	sys.exit(1)
 
 #########################################
