@@ -124,7 +124,7 @@ fasta = {} # this will hold the sequences of the fasta file
 
 a = True
 
-sys.stderr.write( "Reading the fasta file containing the input transcript(s)\n" )
+sys.stdout.write( "Reading the fasta file containing the input transcript(s)\n" )
 
 while a:
 	line = line.strip()
@@ -174,7 +174,7 @@ fhplainbad.write( "siRNA_name\tsequence\tQC_asymmetry\tQC_nucleotide_runs\tQC_GC
 # Now loop through the fasta dictionary and analyze each sequence
 #sys.stderr.write( "\nAnalyzing each gene separately\n" )
 for gene in fasta:
-	sys.stderr.write( "\n---------------------------------\n---------------------------------\nAnalyzing: " + gene + "...\n" )
+	sys.stdout.write( "\n---------------------------------\n---------------------------------\nAnalyzing: " + gene + "...\n" )
 	
 	tmp_file = gene + ".fa"
 	fhout = open ( tmp_file, "w" )
@@ -192,7 +192,7 @@ for gene in fasta:
 	SIRNA_LEN = int(siRNA_len)  # The default was intially set to 21. Think twice before you change it!
 	siRNA_sequences = generate_siRNAs(fasta[gene], SIRNA_LEN)
 	
-	sys.stderr.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
+	sys.stdout.write( "Examining all " + str(SIRNA_LEN) + "-nt sequences...\n" )
 	
 	properties = {}
 	
@@ -254,7 +254,7 @@ for gene in fasta:
 	BT_IDX = os.path.splitext(TO_GENOME)[0] + '/' + to_id[0] + '_bowtie_idx'
 
 	# Align siRNAs to genome
-	sys.stderr.write( "\nMapping siRNAs from " + gene + " to target organism " + TO + "...\n" )
+	sys.stdout.write( "\nMapping siRNAs from " + gene + " to target organism " + TO + "...\n" )
 
 	sam_file_to = run_bowtie1(mis, BT_IDX, SIRNA_LEN, gene + "_to.sam")
 	
@@ -299,7 +299,7 @@ for gene in fasta:
 		BT_IDX_NTO = os.path.split(NTO_GENOMES)[0] + '/' + nto_id[0] + '_bowtie_idx'
 
 		# Align with bowtie1 against NTOs
-		sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto + " ...\n" )
+		sys.stdout.write( "\n---------------------------------\nAligning to NTO " + nto + " ...\n" )
 		# sys.stderr.write( "\n---------------------------------\nAligning to NTO " + nto_id[0] + " ...\n" )
 
 		sam_file_nto = run_bowtie1(mis, BT_IDX_NTO, SIRNA_LEN, gene + "_nto.sam")
