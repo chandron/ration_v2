@@ -125,22 +125,21 @@ python dsRNA_analyzer_2.py \
 	5. mismatched_bases: SAM code produced by bowtie. For example, ‘2A17’ means perfect match for the first 2 bases, followed by a mismatch with A, then perfect match for the following 17 bases.
 	6. mismatches: number of mismatches on NTO hit.
 
-3. `dsRNAs_per_gene.tsv` Suggested dsRNAs based on correpsonding value in the input. Example assumes dsRNA of 500nt.
+3. `dsRNAs_per_gene.tsv` Suggested dsRNAs based on corresponding value in the input. Example assumes dsRNA of 500nt.
 
-	| TranscriptID   | best_dsRNA_start | best_dsRNA_stop | Transcript_length | siRNAs_specific_to_target_gene | siRNAs_targeting_NTOs | dsRNA_sequence                       |
-	|----------------|:----------------:|:---------------:|:-----------------:|:------------------------------:|:---------------------:|--------------------------------------|
-	| XP_023014076.1 |        291       |       791       |        840        |                3               |           11          | ACCATGAAAAAAATTGTGGAAATCAATGATTTC... |
-	| XP_023024442.1 |         0        |       500       |        1131       |                1               |           11          | ATGTGTGACGACGATGTAGCGGCTCTTGTCG...   |
+	| TranscriptID   | best_dsRNA_start | best_dsRNA_stop | Transcript_length | Count_of good_siRNAs | dsRNA_sequence                       |
+	|----------------|:----------------:|:---------------:|:-----------------:|:--------------------:|--------------------------------------|
+	| XP_023014076.1 |        291       |       791       |        840        |                3               |         ACCATGAAAAAAATTGTGGAAATCAATGATTTC... |
+	| XP_023024442.1 |         0        |       500       |        1131       |                1               |          ATGTGTGACGACGATGTAGCGGCTCTTGTCG...   |
 
 	1. TranscriptID: transcript ID.
 	2. best_dsRNA_start: the starting position of the suggested dsRNA (500-nt in this example).
 	3. best_dsRNA_stop: the stopping position of the dsRNA.
 	4. Transcript_length: the total length of the transcript so that one can tell if the dsRNA falls towards the 5' or 3' of the transcript.
-	5. siRNAs_specific_to_target_gene: siRNAs without off-target hits in target organism.
-	6. siRNAs_targeting NTOs: siRNAs targeting non- target organisms.
-	7. dsRNA_sequence: the sequence of the dsRNA. If the transcript length is smaller than the one specified on the command line  then no dsRNA will be suggested.
+	5. Count_of good_siRNAs: siRNAs that have passedall tests.
+	6. dsRNA_sequence: the sequence of the dsRNA. If the transcript length is smaller than the one specified on the command line  then no dsRNA will be suggested.
 
-- In addition to the three tables above, a multi-fasta file containing all generated siRNAs and a subset of `siRNAs.all.tsv` containing only the siRNAs that have passedall tests (`siRNAs.good.tsv`), are provided for convenience.
+- In addition to the three tables above, a multi-fasta file containing all generated siRNAs and a subset of `siRNAs.all.tsv` containing only the siRNAs that have passed all tests (`siRNAs.good.tsv`), are also provided for convenience.
 
 ---
 
