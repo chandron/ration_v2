@@ -1,0 +1,31 @@
+<mxfile host="65bd71144e">
+    <diagram id="9hZy5mqHCEDNIBoQOq3t" name="Page-1">
+        <mxGraphModel dx="1945" dy="674" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" background="#FFFFFF" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="4" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;Inputs&lt;br style=&quot;font-size: 14px;&quot;&gt;&lt;/b&gt;&lt;br style=&quot;border-color: var(--border-color); font-size: 14px;&quot;&gt;- mRNA(s)&lt;br style=&quot;font-size: 14px;&quot;&gt;- Target organism genome&lt;br style=&quot;font-size: 14px;&quot;&gt;- Non-target organisms genomes (bees, plants, other arthropods, etc.)" style="whiteSpace=wrap;html=1;rounded=0;glass=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="-195" width="280" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Create siRNAs of length specified in command line (usually 20-21nt) and check their properties&lt;br style=&quot;font-size: 13px;&quot;&gt;&lt;/b&gt;&lt;b style=&quot;background-color: initial; font-size: 14px;&quot;&gt;&lt;br style=&quot;font-size: 13px;&quot;&gt;&lt;div style=&quot;&quot;&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;1. is GC content 20-50%?&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;2. is it free of nucleotide runs &amp;gt;=3?&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;3. is there an A/T at the 5’ and a G/C at the 3’?&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;&lt;br style=&quot;&quot;&gt;&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;&lt;br style=&quot;&quot;&gt;&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;4. Does it &quot;hit&quot; other genomic regions in Target organism?&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;font color=&quot;#0000cc&quot;&gt;5. Does it &quot;hit&quot; any of the NTOs? Where? How?&lt;/font&gt;&lt;/div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;br style=&quot;&quot;&gt;&lt;/div&gt;&lt;div style=&quot;font-size: 13px;&quot;&gt;&lt;br style=&quot;font-size: 13px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/b&gt;" style="whiteSpace=wrap;labelBackgroundColor=none;fontSize=13;align=center;spacing=2;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;rounded=0;glass=0;spacingLeft=2;" parent="1" vertex="1">
+                    <mxGeometry x="-260" y="148" width="410" height="190" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="&lt;div style=&quot;font-size: 14px;&quot;&gt;&lt;div style=&quot;text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;&lt;b&gt;Outputs&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;ul id=&quot;docs-internal-guid-77ae69f3-7fff-f819-7867-f8c8b844792a&quot; style=&quot;margin-top:0;margin-bottom:0;padding-inline-start:48px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;All siRNAs that could potentially be generated with their on- and off-target properties.&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;ul style=&quot;margin-top:0;margin-bottom:0;padding-inline-start:48px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;Tables with “good” siRNAs.&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;Potential hits/matches of siRNAs on NTO genomes and matching characteristics.&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;Selection of “best” dsRNA fragment per input transcript.&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; font-family: Calibri, sans-serif;&quot;&gt;multi-fasta file of all siRNAs.&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" style="whiteSpace=wrap;labelBackgroundColor=none;fontSize=12;align=left;spacing=2;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;html=1;rounded=0;glass=0;spacingLeft=2;" parent="1" vertex="1">
+                    <mxGeometry x="-300" y="390" width="490" height="190" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="" style="endArrow=classic;html=1;fontSize=14;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=2;strokeColor=default;fillColor=#050505;fillStyle=solid;" parent="1" source="7" target="8" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="-30" y="340" as="sourcePoint"/>
+                        <mxPoint x="-10" y="330" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="10" value="" style="endArrow=classic;html=1;fontSize=14;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=default;fillColor=#050505;fillStyle=solid;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="4" target="7" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="-40" y="110" as="sourcePoint"/>
+                        <mxPoint x="-45" y="149" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
