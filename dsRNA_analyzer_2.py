@@ -393,8 +393,8 @@ for gene in fasta:
 			and properties[siRNA_name]["qc_nt_runs"] == 0 \
 			and properties[siRNA_name]["qc_gc_content"] == 1 \
 			and properties[siRNA_name]["qc_specificity"] == 1 \
-			and properties[siRNA_name]["qc_offtargets"] == 0:
-			# and properties[siRNA_name]["qc_nto_offtargets"] == 0:
+			and properties[siRNA_name]["qc_offtargets"] == 0 \
+			and properties[siRNA_name]["qc_nto_offtargets"] == 0:
 			fhgood.write( out )
 			
 			good_pos.append( pos )
