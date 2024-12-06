@@ -104,15 +104,31 @@ DELETE_TMP = True  # delete temporary file
 #########################################
 # Import the target genome.gff file
 # can use that for finding specificity on target gene rather than blasting
+GFF = ''
+gff = pd.DataFrame()
+gff_cds = pd.DataFrame()
+gff_gene = pd.DataFrame()
+
 GFF = os.path.split(TO_GENOME)[0] + '/' + gff_input[TO]
 
 gff = pd.read_csv(GFF, sep='\t', header=None, comment='#')
 gff_cds = gff[gff[2] == "CDS"].copy()
 gff_cds[9] = gff_cds[8].replace(to_replace=r'^.+Name=([^;]+);.+$', value=r'\1',regex=True)
-gff_cds[10] = gff_cds[8].replace(to_replace=r'^.+Dbxref=GeneID:([^,]+),.+$', value=r'\1',regex=True)
-gff_cds[11] = gff_cds[8].replace(to_replace=r'^.+Parent=rna-([^;]+);.+$', value=r'\1',regex=True)
+if gff_cds[8].str.contains('Dbxref=GeneID').any():
+	gff_cds[10] = gff_cds[8].replace(to_replace=r'^.+Dbxref=GeneID:([^,]+),.+$', value=r'\1',regex=True)
+elif gff_cds[8].str.contains('Dbxref=NCBI_GP').any():
+	gff_cds[10] = gff_cds[8].replace(to_replace=r'^.+Dbxref=NCBI_GP:([^;]+);.+$', value=r'\1',regex=True)
+gff_cds[11] = gff_cds[8].replace(to_replace=r'^.+Parent=rna-([^;]+);.+$', value=r'\1',regex=True).replace(to_replace=r'^.+\|([^\|]+)_mrna$', value=r'\1',regex=True)
 gff_cds = gff_cds[[9, 10, 11, 3, 4, 6, 0]].rename(columns={9:'CDS_name', 10:'GeneID', 11:'mRNA', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
 # gff_cds.to_csv("delme", index=False, sep='\t')
+
+## Make copy of GFF for genes
+gff_gene = gff[gff[2] == "gene"].copy()
+if gff_gene[8].str.contains('Dbxref=GeneID').any():
+	gff_gene[9] = gff_gene[8].replace(to_replace=r'^.+Dbxref=GeneID:([^;]+);.+$', value=r'\1',regex=True)
+else:
+	gff_gene[9] = gff_gene[8].replace(to_replace=r'^ID=gene-([^;]+);.+$', value=r'\1',regex=True)
+gff_gene = gff_gene[[9, 3, 4, 6, 0]].rename(columns={9:'GeneID', 3:'start', 4:'end', 6:'strand', 0:'chromosome'}).reset_index(drop=True)
 #############################
 
 # open the fasta file containing the dsRNA sequences
@@ -249,6 +265,19 @@ for gene in fasta:
 	# sort CDS_ranges and create new list from start and end
 	CDS_ranges.sort()
 	all_ranges = [x for x in range(CDS_ranges[1], CDS_ranges[-1])]
+	##############################
+	# ## Get GeneID and genomic intervals
+	# gene_id = ''
+	# gene_start = ''
+	# gene_end = ''
+	# if gene.startswith('XP_'):
+	# 	gene_id = gff_cds[gff_cds['CDS_name'] == gene]['GeneID'].unique()[0]
+	# elif gene.startswith('XM_'):
+	# 	gene_id = gff_cds[gff_cds['mRNA'] == gene]['GeneID'].unique()[0]
+
+	# gene_start = gff_gene[gff_gene['GeneID'] == gene_id]['start'].unique()[0]
+	# gene_end = gff_gene[gff_gene['GeneID'] == gene_id]['end'].unique()[0]
+
 	##############################
 	# bowtie1 target organism index
 	to_id = organisms[TO].rsplit('.', 1)
