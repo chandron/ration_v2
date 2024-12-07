@@ -38,6 +38,7 @@ required named arguments:
 ```
 
 ### 2. Dependencies ###
+- [BLAST+](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html): used to locate genomic position of input sequence.
 - [bowtie](https://bowtie-bio.sourceforge.net/index.shtml): fast, short DNA aligner.
 - [NCBI datasets command line tool](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/download-and-install/). Used to download genomes and GFF file.
 - Python libaries:
@@ -136,7 +137,7 @@ python dsRNA_analyzer_2.py \
 	2. best_dsRNA_start: the starting position of the suggested dsRNA (500-nt in this example).
 	3. best_dsRNA_stop: the stopping position of the dsRNA.
 	4. Transcript_length: the total length of the transcript so that one can tell if the dsRNA falls towards the 5' or 3' of the transcript.
-	5. Count_of good_siRNAs: siRNAs that have passedall tests.
+	5. Count_of good_siRNAs: Number of siRNAs that have passed all tests.
 	6. dsRNA_sequence: the sequence of the dsRNA. If the transcript length is smaller than the one specified on the command line  then no dsRNA will be suggested.
 
 - In addition to the three tables above, a multi-fasta file containing all generated siRNAs and a subset of `siRNAs.all.tsv` containing only the siRNAs that have passed all tests (`siRNAs.good.tsv`), are also provided for convenience.
