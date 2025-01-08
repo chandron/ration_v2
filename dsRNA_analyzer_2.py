@@ -122,7 +122,7 @@ if not os.path.isfile(expected_TO_path + ".nhr"):
 #############################
 
 # open the fasta file containing the dsRNA sequences
-fh1 = open ( mRNAs )
+fh1 = open ( mRNAs, encoding='utf-8-sig' )
 
 line = fh1.readline()
 
@@ -237,14 +237,14 @@ for gene in fasta:
 		for line in gff_input:
 			if not line.startswith("#"):
 				splitted = line.strip('\n').split('\t')
-				if splitted[2] == 'gene':
+				if (splitted[2] == 'gene') or (splitted[2] == 'protein_coding_gene'):
 					for coord in s_coords:
 						genome_coords = coord.split ( "\t" )
-						if splitted[0] == genome_coords[0] and genome_coords[1] >= splitted[3] and genome_coords[2] <= splitted[4]:
+						if (splitted[0] == genome_coords[0]) & (int(genome_coords[1]) >= int(splitted[3])) & (int(genome_coords[2]) <= int(splitted[4])):
 							chrom = splitted[0]
 							gene_start = splitted[3]
 							gene_end = splitted[4]
-							gene_id = re.match(r'^ID=gene-*([^;]+);.+$', splitted[8]).group(1)
+							gene_id = re.match(r'^ID=(?:gene-)*([^;]+);.+$', splitted[8]).group(1)
 	##################
 
 	## Start analyzing siRNAs
