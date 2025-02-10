@@ -21,6 +21,7 @@ requiredNamed.add_argument('-f', '--TO_genome', help='Path to target organism ge
 
 requiredNamed.add_argument('-n', '--NTO', help='List of NTO(s) considered in this run; Scientific names separated by semicolon(;)', required=True)
 requiredNamed.add_argument('-a', '--NTO_genomes', help='Path to non-target organism genome(s)', required=True)
+requiredNamed.add_argument('-g', '--NTO_type', help='select NTO genome or transcriptome', default='genome', required=True)
 
 requiredNamed.add_argument('-s', '--siRNA_length', type=int, default=20, help='length of siRNA')
 requiredNamed.add_argument('-d', '--dsRNA_length', type=int, default=500, help='length of dsRNA')
@@ -38,6 +39,7 @@ TO_GENOME = args.TO_genome
 TO = args.TO
 NTO   = args.NTO
 NTO_GENOMES = args.NTO_genomes
+NTO_TYPE = args.NTO_type
 Organism_db = args.Organism_db
 siRNA_len= args.siRNA_length
 ds_len = args.dsRNA_length
@@ -63,10 +65,24 @@ if re.findall(r'[\t,;\|\$]', TO):
 # Read NTO command-line argument
 nto_args = []
 nto_args = [s.strip() for s in re.split(r'[,;\|]', NTO)]
-## .. and check that NTOs are <=10
+## .. and check that NTOs are <=20
 if len(nto_args) > 20:
 	sys.stderr.write( "NTOs should be up to 20\n" )
 	sys.exit(1)
+ 
+# Select NTO genomes vs NTO transcriptomes
+if NTO_TYPE.lower() == 'transcriptome':
+    NTO_GENOMES = os.path.split(NTO_GENOMES)[0] + "_RNA" + "/"
+    for nto in nto_args:
+        nto_id = organisms[nto].rsplit('.', 1)
+		# check for NTO transcriptome bowtie index
+        nto_path = os.path.split(NTO_GENOMES)[0] + '/' + nto_id[0] + '.fna'
+        if os.path.exists(nto_path) == False:
+            sys.stderr.write( "There is no transcriptome for " + nto + ". Please remove this organism from your NTO set\n" )
+            sys.exit(1)
+elif (NTO_TYPE.lower() != 'transcriptome') and (NTO_TYPE.lower() != 'genome'):
+    sys.stderr.write( "Please select NTO type: genome or transcriptome\n" )
+    sys.exit(1)
 
 #########################################
 # Get TO GFF path
