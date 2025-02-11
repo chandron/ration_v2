@@ -11,30 +11,35 @@
 
 
 ```
-Usage: dsRNA_analyzer_2.py [-h] -i INPUT -o ORGANISM_DB -t TO -f TO_GENOME -n NTO -a NTO_GENOMES [-s SIRNA_LENGTH] [-d DSRNA_LENGTH] [-m MISMATCHES] [-p THREADS]
+Usage: dsRNA_analyzer_2.py [-h] -i INPUT -o ORGANISM_DB -t TO -f TO_GENOME -n NTO -a NTO_GENOMES -g NTO_TYPE [-s SIRNA_LENGTH] [-d DSRNA_LENGTH] [-m MISMATCHES] [-p THREADS]
 
-Options:
-  -h, --help  show this help message and exit
+This script reads in a list of transcripts and evaluates their suitability as RNAi targets in a target organism. It will also search for off-targets in the target organism as well as potential hits
+in non-target organisms (NTOs).
+
+options:
+  -h, --help            show this help message and exit
   -p THREADS, --threads THREADS
-            number of threads to use
+                        number of threads to use
 
 required named arguments:
   -i INPUT, --input INPUT
-			Path to input transcripts. This has to be a valid fasta/multi-fasta file
+                        Path to input transcripts. This has to be a valid fasta/multi-fasta file
   -o ORGANISM_DB, --Organism_db ORGANISM_DB
-            Mapping of organisms - one per line ID and scientific name, tab-separated
+                        Mapping of organisms - one per line ID and scientific name, tab-separated
   -t TO, --TO TO        Target organism; Use scientific name
   -f TO_GENOME, --TO_genome TO_GENOME
-            Path to target organism genome and GFF files
+                        Path to target organism genome and GFF files
   -n NTO, --NTO NTO     List of NTO(s) considered in this run; Scientific names separated by semicolon(;)
   -a NTO_GENOMES, --NTO_genomes NTO_GENOMES
-            Path to non-target organism genome(s)
+                        Path to non-target organism genome(s)
+  -g NTO_TYPE, --NTO_type NTO_TYPE
+                        select NTO genome or transcriptome
   -s SIRNA_LENGTH, --siRNA_length SIRNA_LENGTH
-            length of siRNA
+                        length of siRNA
   -d DSRNA_LENGTH, --dsRNA_length DSRNA_LENGTH
-            length of dsRNA
+                        length of dsRNA
   -m MISMATCHES, --mismatches MISMATCHES
-            number of mismatches allowed when matching siRNAs to target and NTO genome
+                        number of mismatches allowed when matching siRNAs to target and NTO genome
 ```
 
 ### 2. Dependencies ###
@@ -66,6 +71,7 @@ python dsRNA_analyzer_2.py \
 -f [Path to target organism genome and GFF files] \
 -n "Drosophila melanogaster;Folsomia candida; Apis mellifera" \
 -a [Path to NTO genomes] \
+-g "genome"
 -s 20 \
 -d 500 \
 -m 2
@@ -166,12 +172,24 @@ python dsRNA_analyzer_2.py \
 	
 	Make sure to adhere to the above naming convention, keeping the suffix *_bowtie_idx* at the end of the index file.
 
-3. Obtain the **non-target organism (NTO)** genomes.
+3. Obtain the **non-target organism (NTO)** genomes and/or transcriptomes from [NCBI Datasets](https://www.ncbi.nlm.nih.gov/datasets/).
+	For example, for `Apis mellifera (honey bee)` do the following:
   
-	a. Download files from [NCBI Datasets](https://www.ncbi.nlm.nih.gov/datasets/) into the **NTO directory**. For example, for `Apis mellifera (honey bee)` do the following:
-  
-		datasets download genome accession GCF_003254395.2 --include genome
-  
+   ```
+   datasets download genome accession GCF_003254395.2 --include gff3,rna,cds,protein,genome,seq-report
+   ```
+	
+   a. Place the unziped files into the **NTO directory** (for NTO genomes) or in the **NTO_RNA directory** (for NTO transcriptomes). **Make sure that the names of the NTO directories ar as specified above: NTO and NTO_RNA, and that these two directories are within the same directory**. For example:
+	
+	```
+      .
+      ├── db
+      │   ├── NTO
+      │   ├── NTO_RNA
+      │   └── TO
+
+	```
+	
 	b. Unzip the downloaded file and create symbolic links to the **genome** .fna file, while at the same time simplifying names, eg:
     
 		ln -s ncbi_dataset/data/GCF_003254395.2_Amel_HAv3.1_genomic.fna GCF_003254395.2.fna
@@ -182,7 +200,7 @@ python dsRNA_analyzer_2.py \
 
 	**Again, make sure to adhere to naming conventions as per the TO instructions**.
 
-4. Obtain IDs from FASTA headers of NTO genome files. These will be used to identify genes targeted by siRNAs in NTOs:
+4. Obtain IDs from FASTA headers of NTO genome or transcriptome files. These will be used to identify genes/loci targeted by siRNAs in NTOs:
 
 		grep -P '^>' GCF_003254395.2.fna | perl -pe 's/>([^ ]+) ([^ ]+) ([^ ]+) .+$/\1\t\2 \3/' > GCF_003254395.2.fna.ids
 
