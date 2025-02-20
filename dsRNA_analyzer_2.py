@@ -239,7 +239,7 @@ for gene in fasta:
 	elif hit_len/q_len > 1:
 		sys.stdout.write( "The sum of hits is greater than the input sequence length: " + str(hit_len) + " / " + str(q_len) + " bp\n" )
 	else:
-		sys.stderr.write( "You should never get here!\n" )
+		sys.stderr.write( "Input sequence not found in the target organism!\n" )
 	
 	##################
 	## Locate target gene in the GFF file of the target genome
