@@ -173,7 +173,7 @@ fh1.close()
 # open the file where you'll write the dsRNA sequence (and other details)
 fhout_dsRNA = open( "dsRNAs_per_gene.tsv", "w")
 # fhout_dsRNA.write( "Transcript\tbest_dsRNA_start\tbest_dsRNA_stop\tTranscript_length\tCount_of good_siRNAs\tCount_of_siRNAs_targeting_NTOs\tdsRNA_sequence\n" )
-fhout_dsRNA.write( "Transcript\tbest_dsRNA_start\tbest_dsRNA_stop\tTranscript_length\tCount_of good_siRNAs\tdsRNA_sequence\n" )
+fhout_dsRNA.write( "TranscriptID\tbest_dsRNA_start\tbest_dsRNA_stop\tTranscript_length\tCount_of good_siRNAs\tdsRNA_sequence\n" )
 
 # open the output files
 fhgood = open ( "siRNAs.good.tsv", "w" )
