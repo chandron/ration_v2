@@ -523,6 +523,8 @@ for gene in fasta:
 		out += "\t" + str(best_good_cnt)
 		# out += "\t" + str(best_bad_cnt)
 		out += "\t" + dsRNA_sequence
+	else:
+		out += "\t 0 \t 0 \t 0 \t 0 \t - "
 	out += "\n"
 	fhout_dsRNA.write( out )
 	
