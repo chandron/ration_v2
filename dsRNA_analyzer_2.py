@@ -109,6 +109,7 @@ def run_bowtie1(mis, index_prefix, siRNA_length, sam_out):
 		# "--best",
 		# "--strata",
         "-x", index_prefix,
+        "-p", "4",
         "siRNAs.fa",
         os.path.join(os.getcwd(), sam_out)
     ]
