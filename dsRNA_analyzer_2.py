@@ -86,7 +86,9 @@ elif (NTO_TYPE.lower() != 'transcriptome') and (NTO_TYPE.lower() != 'genome'):
 
 #########################################
 # Get TO GFF path
-GFF = os.path.split(TO_GENOME)[0] + '/' + gff_input[TO]
+GFF = ''
+if gff_input[TO]:
+	GFF = os.path.split(TO_GENOME)[0] + '/' + gff_input[TO]
 
 #########################################
 def generate_siRNAs(sequence, si_length):
@@ -250,18 +252,26 @@ for gene in fasta:
 	gene_start = ''
 	gene_end = ''
 	chrom = ''
-	with open(GFF, 'r') as gff_input:
-		for line in gff_input:
-			if not line.startswith("#"):
-				splitted = line.strip('\n').split('\t')
-				if (splitted[2] == 'gene') or (splitted[2] == 'protein_coding_gene'):
-					for coord in s_coords:
-						genome_coords = coord.split ( "\t" )
-						if (splitted[0] == genome_coords[0]) & (int(genome_coords[1]) >= int(splitted[3])) & (int(genome_coords[2]) <= int(splitted[4])):
-							chrom = splitted[0]
-							gene_start = splitted[3]
-							gene_end = splitted[4]
-							gene_id = re.match(r'^ID=(?:gene-)*([^;]+);.+$', splitted[8]).group(1)
+	if GFF:
+		with open(GFF, 'r') as gff_file:
+			for line in gff_file:
+				if not line.startswith("#"):
+					splitted = line.strip('\n').split('\t')
+					if (splitted[2] == 'gene') or (splitted[2] == 'protein_coding_gene'):
+						for coord in s_coords:
+							genome_coords = coord.split ( "\t" )
+							if (splitted[0] == genome_coords[0]) & (int(genome_coords[1]) >= int(splitted[3])) & (int(genome_coords[2]) <= int(splitted[4])):
+								chrom = splitted[0]
+								gene_start = splitted[3]
+								gene_end = splitted[4]
+								gene_id = re.match(r'^ID=(?:gene-)*([^;]+);.+$', splitted[8]).group(1)
+	else:
+		# if no GFF file is provided, use the first hit coordinates
+		gene_id = "N/A"
+		gene_start = s_coords[0].split("\t")[1]
+		gene_end = s_coords[0].split("\t")[2]
+		chrom = s_coords[0].split("\t")[0]
+        
 	##################
 
 	## Start analyzing siRNAs
