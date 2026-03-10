@@ -190,11 +190,11 @@ python dsRNA_analyzer_2.py \
 
 	```
 	
-	b. Unzip the downloaded file and create symbolic links to the **genome** .fna file, while at the same time simplifying names, eg:
+	b. Unzip the downloaded file and create symbolic links to the **genome or transcriptome** .fna file, while at the same time simplifying names, eg:
     
 		ln -s ncbi_dataset/data/GCF_003254395.2_Amel_HAv3.1_genomic.fna GCF_003254395.2.fna
 
-	c. Create `bowtie index` for each of the NTO genomes:
+	c. Create `bowtie index` for each of the NTO genomes/transcriptomes:
 
 		bowtie-build --threads 8 -f GCF_003254395.2.fna GCF_003254395.2_bowtie_idx
 
