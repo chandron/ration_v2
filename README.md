@@ -136,8 +136,8 @@ python dsRNA_analyzer_2.py \
 
 	| TranscriptID   | best_dsRNA_start | best_dsRNA_stop | Transcript_length | Count_of good_siRNAs | dsRNA_sequence                       |
 	|----------------|:----------------:|:---------------:|:-----------------:|:--------------------:|--------------------------------------|
-	| XP_023014076.1 |        291       |       791       |        840        |                3               |         ACCATGAAAAAAATTGTGGAAATCAATGATTTC... |
-	| XP_023024442.1 |         0        |       500       |        1131       |                1               |          ATGTGTGACGACGATGTAGCGGCTCTTGTCG...   |
+	| XP_023014076.1 |        310       |       810       |        840        |                4               |         AAATCAATGATTTCTTATTGGGAACATTGGC... |
+	| XP_023024442.1 |        326       |       826       |        1131       |                1               |         TCCACTCAACCCCAAAGCCAACAGGGAGAAG...   |
 
 	1. TranscriptID: transcript ID.
 	2. best_dsRNA_start: the starting position of the suggested dsRNA (500-nt in this example).
