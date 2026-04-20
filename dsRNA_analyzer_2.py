@@ -496,26 +496,50 @@ for gene in fasta:
 
 	## Check size of input transcript, in case it is smaller than desired dsRNA
 	check_range = 0
-	if int(ds_len) >= q_len:
-		check_range = q_len
-	else:
-		check_range = q_len - int(ds_len)
+	# if int(ds_len) >= q_len:
+	# 	check_range = q_len
+	# else:
+	# 	check_range = q_len - int(ds_len)
 	
+	# for i in range( 0, check_range ):
+	# 	curr_good_cnt = 0 # count of "good" siRNAs contained in the current dsRNA
+		
+	# 	for pos in good_pos:
+	# 		if pos > i and pos < i + int(ds_len):
+	# 			curr_good_cnt += 1
+		
+	# 	if curr_good_cnt > best_good_cnt:
+	# 		best_good_cnt = curr_good_cnt
+	# 		best_pos = i
+
+	# # Find "bad" off-target siRNAs contained in best dsRNA segment
+	# best_range = list(range(best_pos, best_pos + int(ds_len)))
+	# for pos in bad_pos:
+	# 	if pos >= best_range[0] and pos <= best_range[-1]:
+	# 		best_bad_cnt += 1
+    # AFTER
+	# A siRNA starting at position `pos` occupies [pos, pos + SIRNA_LEN) on the transcript.
+	# For it to be FULLY contained in a dsRNA window [i, i + ds_len), we need:
+	#     pos >= i                       (siRNA starts at or after the window start)
+	#     pos + SIRNA_LEN <= i + ds_len  (siRNA ends at or before the window end)
+
+	if int(ds_len) >= q_len:
+		check_range = 1                           # only one valid window: the whole transcript
+	else:
+		check_range = q_len - int(ds_len) + 1     # inclusive upper bound on window start
+
 	for i in range( 0, check_range ):
-		curr_good_cnt = 0 # count of "good" siRNAs contained in the current dsRNA
-		
+		curr_good_cnt = 0
 		for pos in good_pos:
-			if pos > i and pos < i + int(ds_len):
+			if pos >= i and pos + SIRNA_LEN <= i + int(ds_len):
 				curr_good_cnt += 1
-		
 		if curr_good_cnt > best_good_cnt:
 			best_good_cnt = curr_good_cnt
 			best_pos = i
 
-	# Find "bad" off-target siRNAs contained in best dsRNA segment
-	best_range = list(range(best_pos, best_pos + int(ds_len)))
+	# Find "bad" off-target siRNAs fully contained in best dsRNA window
 	for pos in bad_pos:
-		if pos >= best_range[0] and pos <= best_range[-1]:
+		if pos >= best_pos and pos + SIRNA_LEN <= best_pos + int(ds_len):
 			best_bad_cnt += 1
 	
 	# get the sequence of the dsRNA
